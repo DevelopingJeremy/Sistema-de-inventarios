@@ -1,9 +1,9 @@
 <?php
 
 // Datos para la conexión del Email
-$hostMail = "smtp.hostinger.com";
-$usernameMail = "info@covomosa.app";
-$passMail = "M3a~mbU[";
+$hostMail = ""; // Host del email
+$usernameMail = ""; // Correo desde que enviamos
+$passMail = ""; // Contraseña del email
 $SMTPSecure = "ssl";
 $PortMail = 465;
 
