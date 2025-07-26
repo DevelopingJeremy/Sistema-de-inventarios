@@ -1,0 +1,12 @@
+Mail = Funcionamiento normal del Email, no se cambia nada
+
+Correo electronico:
+veri-email = Enviar correo con link para verificar correo electronico (Backend)
+verificar-correo = Mensaje con HTML que dice que el correo ya fue enviado y poder reenviarlo
+email-verificado = Mensaje de que el email fue verificado y puede continuar usando el sistema
+verificar-token = Sirve para verificar el token y verificar la cuenta
+
+A2F:
+enviar-a2f = Envia un codigo A2F al correo
+iniciar-a2f = HTML con mensaje para USAR a2f
+procesar-a2f = Backend que procesa el envio del PHP

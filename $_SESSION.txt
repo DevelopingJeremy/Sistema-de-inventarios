@@ -1,0 +1,19 @@
+
+Verificaciones:
+id_usuario = ID del usuario en la tabla t_usuarios
+correo = correo electronico del usuario activo
+token_correo = token para el correo generado al iniciar sesion o registrarse
+correo_verificado = dice si el correo del usuario ya fue verificado
+nombre_usuario = nombre del usuario activo
+sesion = Verifica si el usuario  tiene una sesion iniciada
+empresa_creada = El usuario cuenta con una empresa creada
+
+
+De Mensajes:
+error_login = Error en el login, contiene mensaje de error
+error_registro = Error en el registro, contiene mensaje de error
+error_cambioPass = Error en el cambio de contraseña, contiene mensaje de error
+cambioPass = Cambio de contraseña con exito, se convierte en true o false
+error_a2f = Error en procesar codigo A2F, contiene mensaje de error
+mensaje_exito = Guarda cualquier mensaje de exito inmediato
+mensaje_error = Guarda cualquier mensaje de error inmediato
