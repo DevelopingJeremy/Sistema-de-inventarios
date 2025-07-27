@@ -70,9 +70,7 @@ require_once __DIR__ . '/../../../config/db.php';
         inactividad($ubicacion);
         verifiCorreo($pathCorreo);
         verifiEmpresa($pathEmpresa);
-        echo 'Verificaciones completas, activas<br><br>';
     }
 
-    echo 'Verificaciones activas<br><br>';
 
 ?>

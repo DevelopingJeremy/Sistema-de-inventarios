@@ -50,7 +50,7 @@
                     } else {
                         // Error al obtener los datos
                         $_SESSION['error_login'] = "Error al iniciar sesion, intente nuevamente.";
-                    header("Location: ../../../public/sesion/iniciar-sesion.php");
+                        header("Location: ../../../public/sesion/iniciar-sesion.php");
                     }
                 } else {
                     // Correo ya verificado
