@@ -19,42 +19,76 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro | Hybox</title>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <!-- CDN Sweet Alert 2 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/auth-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
-    <form method="post" action="../../src/auth/sesion/registrar.php">
-        <label for="nombre">Nombre</label>
-        <input type="text" name="nombre" placeholder="Nombre" required><br>
+    <div class="auth-container">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-cube"></i>
+                <h1>Hybox</h1>
+            </div>
+            <p class="auth-subtitle">Crear nueva cuenta</p>
+            <p class="auth-description">Completa el formulario para crear tu cuenta</p>
+        </div>
 
-        <label for="apellidos">Apellidos</label>
-        <input type="text" name="apellidos" placeholder="Apellidos" required><br><br>
+        <form method="post" action="../../src/auth/sesion/registrar.php" class="auth-form">
+            <div class="form-group">
+                <label for="nombre" class="form-label">Nombre</label>
+                <input type="text" name="nombre" placeholder="Tu nombre" required id="nombre" class="form-input">
+            </div>
 
-        <label for="correo">Correo Electrónico</label>
-        <input type="email" name="correo" placeholder="Correo electrónico" required><br>
+            <div class="form-group">
+                <label for="apellidos" class="form-label">Apellidos</label>
+                <input type="text" name="apellidos" placeholder="Tus apellidos" required id="apellidos" class="form-input">
+            </div>
 
-        <label for="contraseña">Contraseña</label>
-        <input type="password" name="contraseña" placeholder="Contraseña" required><br>
-        <small style="color: gray;">La contraseña debe tener:</small>
-        <ul class="validacion" style="margin-top: 2px; margin-bottom: 8px; padding-left: 20px; color: gray;">
-            <li>Al menos 8 caracteres</li>
-            <li>Una letra mayúscula</li>
-            <li>Una letra minúscula</li>
-            <li>Un número</li>
-            <li>Un carácter especial (!@#$%^&*)</li>
-        </ul>
+            <div class="form-group">
+                <label for="correo" class="form-label">Correo Electrónico</label>
+                <input type="email" name="correo" placeholder="tu@correo.com" required id="correo" class="form-input">
+            </div>
 
-        <label for="contraConfi">Confirmar Contraseña</label>
-        <input type="password" name="contraConfi" placeholder="Confirmar contraseña" required><br>
-        <button type="submit">Registrarse</button>
-    </form>
+            <div class="form-group">
+                <label for="contraseña" class="form-label">Contraseña</label>
+                <input type="password" name="contraseña" placeholder="Tu contraseña" required id="contraseña" class="form-input">
+                
+                <div class="password-requirements">
+                    <small>La contraseña debe tener:</small>
+                    <ul class="requirements-list">
+                        <li>Al menos 8 caracteres</li>
+                        <li>Una letra mayúscula</li>
+                        <li>Una letra minúscula</li>
+                        <li>Un número</li>
+                        <li>Un carácter especial (!@#$%^&*)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="contraConfi" class="form-label">Confirmar Contraseña</label>
+                <input type="password" name="contraConfi" placeholder="Confirma tu contraseña" required id="contraConfi" class="form-input">
+            </div>
+
+            <button type="submit" class="btn-submit">
+                <i class="fas fa-user-plus"></i> Crear Cuenta
+            </button>
+        </form>
+
+        <div class="auth-links">
+            <p>¿Ya tienes una cuenta? <a href="iniciar-sesion.php" class="auth-link">Inicia sesión aquí</a></p>
+        </div>
+    </div>
 
     <?php if ($error): ?>
     <script>
     Swal.fire({
         icon: "error",
-        title: "Oops...",
-        text: "<?php echo $mensajeError ?>"
+        title: "Error en el registro",
+        text: "<?php echo $mensajeError ?>",
+        confirmButtonColor: '#007bff'
     });
     </script>
     <?php endif; ?>

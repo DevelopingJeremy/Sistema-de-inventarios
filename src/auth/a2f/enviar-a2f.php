@@ -1,7 +1,7 @@
 <?php
     ob_start();
     require_once('../sesion/verificaciones-sesion.php');
-    validTotales('../../../public/sesion/iniciar-sesion.php', '../../../public/sesion/envio-correo.php', '../../../public/empresa/registrar-empresa.php');
+    iniSesion();
     include('../../../config/db.php');
     require('../../../config/mail.php');
 
@@ -13,10 +13,8 @@
     use PHPMailer\PHPMailer\Exception;
 
 
-    $correo = $_SESSION['correo_verificado'];
-
-    // Corroborar si el correo ya está verificado
-    if ($correo) {
+    // Verificar que el usuario tenga sesión básica iniciada
+    if (isset($_SESSION['id_usuario']) && isset($_SESSION['correo'])) {
 
         $id_usuario = $_SESSION['id_usuario'];
         $codigo = rand(1000, 9999);
@@ -57,6 +55,7 @@
             // $mail->addAttachment('/tmp/image.jpg', 'new.jpg');    //Optional name
         } catch (Exception $e) {
             echo "No se pudo enviar el correo. Error: {$mail->ErrorInfo}";
+            exit;
         }
 
         //Content
@@ -137,8 +136,9 @@
         header('Location: ../../../public/sesion/a2f/iniciar-a2f.php');
         exit;
     } else {
-        // Correo no verificado
-        echo 'Correo no verificado';
+        // Usuario no tiene sesión válida
+        header("Location: ../../../public/sesion/iniciar-sesion.php");
+        exit();
     }
     ob_end_flush();
 ?>

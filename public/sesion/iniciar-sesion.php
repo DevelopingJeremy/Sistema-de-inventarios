@@ -19,20 +19,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesion | Hybox</title>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <!-- CDN Sweet Alert 2 -->
+    <title>Iniciar Sesión | Hybox</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/auth-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
-    <form method="post" action="../../src/auth/sesion/iniciar.php">
-        <label for="correo">Correo Electrónico</label>
-        <input type="email" name="correo" placeholder="Correo" required id="correo"><br>
+    <div class="auth-container">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-cube"></i>
+                <h1>Hybox</h1>
+            </div>
+            <p class="auth-subtitle">Bienvenido de vuelta</p>
+            <p class="auth-description">Ingresa tus credenciales para acceder a tu cuenta</p>
+        </div>
 
-        <label for="contraseña">Contraseña</label>
-        <input type="password" name="contraseña" placeholder="Contraseña" required><br>
+        <form method="post" action="../../src/auth/sesion/iniciar.php" class="auth-form">
+            <div class="form-group">
+                <label for="correo" class="form-label">Correo Electrónico</label>
+                <input type="email" name="correo" placeholder="tu@correo.com" required id="correo" class="form-input">
+            </div>
 
-        <input type="submit" value="Iniciar Sesión" id="iniciarSesion">
-    </form>
+            <div class="form-group">
+                <label for="contraseña" class="form-label">Contraseña</label>
+                <input type="password" name="contraseña" placeholder="Tu contraseña" required id="contraseña" class="form-input">
+            </div>
+
+            <button type="submit" class="btn-submit" id="iniciarSesion">
+                <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+            </button>
+        </form>
+
+        <div class="auth-links">
+            <p>¿No tienes una cuenta? <a href="registro.php" class="auth-link">Regístrate aquí</a></p>
+            <p><a href="cambiar-contraseña.php" class="auth-link">¿Olvidaste tu contraseña?</a></p>
+        </div>
+    </div>
 
     <script>
         // Focus en el correo apenas entrar al sistema
@@ -43,8 +67,9 @@
     <script>
         Swal.fire({
             icon: "error",
-            title: "Oops...",
-            text: "<?php echo $mensajeError ?>"
+            title: "Error de autenticación",
+            text: "<?php echo $mensajeError ?>",
+            confirmButtonColor: '#007bff'
         });
     </script>
     <?php endif; ?>

@@ -1,7 +1,14 @@
 <?php
 include('../../../config/db.php');
 require_once('../sesion/verificaciones-sesion.php');
-validTotales('../../../public/sesion/iniciar-sesion.php', '../../../public/sesion/envio-correo.php', '../../../public/empresa/registrar-empresa.php');
+iniSesion();
+inactividad('../../../public/sesion/iniciar-sesion.php');
+
+// Verificar que el usuario tenga sesión básica iniciada
+if (!isset($_SESSION['id_usuario']) || !isset($_SESSION['correo'])) {
+    header("Location: ../../../public/sesion/iniciar-sesion.php");
+    exit();
+}
 
 // Verificar si el usuario tiene sesión iniciada y si se envió el código por POST
 if (!isset($_SESSION['id_usuario']) || !isset($_POST['codigo'])) {

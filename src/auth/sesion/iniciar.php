@@ -9,7 +9,9 @@
 
         // Validar formato del correo
         if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
-            echo "Correo inválido";
+            $_SESSION['error_login'] = "Correo inválido";
+            header("Location: ../../../public/sesion/iniciar-sesion.php");
+            exit();
         }
 
         // Preparar la consulta
@@ -44,47 +46,49 @@
                         // Guardar datos en sesión
                         $_SESSION['correo_verificado'] = false;
                         $_SESSION['token_correo'] = $fila['token'];
-                        $_SESSION['sesion'] = true;
                         header("Location: ../../../public/sesion/envio-correo.php");
-                        exit;
+                        exit();
                     } else {
                         // Error al obtener los datos
                         $_SESSION['error_login'] = "Error al iniciar sesion, intente nuevamente.";
                         header("Location: ../../../public/sesion/iniciar-sesion.php");
+                        exit();
                     }
                 } else {
                     // Correo ya verificado
+                    $_SESSION['correo_verificado'] = true;
 
-                        // Guardar datos en sesión
-                        $_SESSION['correo_verificado'] = true;
-
-                        // Corroborar si ya cuenta con empresa
-                        if ($row['ID_EMPRESA'] != NULL) {
-                            $_SESSION['empresa_creada'] = true;
-                            // A2F activado
-                            if ($row['a2f'] == 1) {
-                                header("Location: ../a2f/enviar-a2f.php");
-                                exit;
-                            } else {
-                                // A2F NO activado
-                                $_SESSION['sesion'] = true;
-                                header("Location: ../../../public/dashboard/dashboard.php");
-                                exit;
-                            }
+                    // Corroborar si ya cuenta con empresa
+                    if ($row['ID_EMPRESA'] != NULL) {
+                        $_SESSION['empresa_creada'] = true;
+                        // A2F activado
+                        if ($row['a2f'] == 1) {
+                            header("Location: ../a2f/enviar-a2f.php");
+                            exit();
                         } else {
-                            $_SESSION['empresa_creada'] = false;
-                            header('Location: ../../../public/empresa/registrar-empresa.php');
+                            // A2F NO activado
+                            $_SESSION['sesion'] = true;
+                            header("Location: ../../../public/dashboard/dashboard.php");
+                            exit();
                         }
+                    } else {
+                        // No tiene empresa registrada
+                        $_SESSION['empresa_creada'] = false;
+                        header('Location: ../../../public/empresa/registrar-empresa.php');
+                        exit();
+                    }
                 }
             } else {
                 // Contraseña incorrecta
                 $_SESSION['error_login'] = "Correo o contraseña incorrectos.";
                 header("Location: ../../../public/sesion/iniciar-sesion.php");
+                exit();
             }
         } else {
             // Correo incorrecto
             $_SESSION['error_login'] = "Correo o contraseña incorrectos.";
             header("Location: ../../../public/sesion/iniciar-sesion.php");
+            exit();
         }
 
         $stmt->close();

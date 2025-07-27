@@ -54,7 +54,7 @@
                             <i class="fas fa-calendar"></i>
                             <span>Hoy es <?php echo date('d/m/Y'); ?></span>
                             <i class="fas fa-clock"></i>
-                            <span><?php echo date('H:i'); ?></span>
+                            <span><?php date_default_timezone_set('America/Costa_Rica'); echo date('H:i') . " - UTC-6"; ?></span>
                         </div>
                     </div>
                     <div class="welcome-actions">

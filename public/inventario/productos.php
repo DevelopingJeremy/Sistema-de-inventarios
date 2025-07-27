@@ -34,6 +34,7 @@
                             </div>
                         </div>
                         <div class="metric-value">1,250</div>
+                        <div class="metric-details">Total Productos</div>
                         <div class="metric-indicator">+45 este mes</div>
                     </div>
 
@@ -44,6 +45,7 @@
                             </div>
                         </div>
                         <div class="metric-value">1,180</div>
+                        <div class="metric-details">Productos Activos</div>
                         <div class="metric-indicator">94% del total</div>
                     </div>
 
@@ -54,6 +56,7 @@
                             </div>
                         </div>
                         <div class="metric-value">15</div>
+                        <div class="metric-details">Stock Bajo</div>
                         <div class="metric-indicator">Requieren atención</div>
                     </div>
 
@@ -64,6 +67,7 @@
                             </div>
                         </div>
                         <div class="metric-value">₡15.2M</div>
+                        <div class="metric-details">Valor Total</div>
                         <div class="metric-indicator">+8.5% vs mes anterior</div>
                     </div>
 
@@ -74,6 +78,7 @@
                             </div>
                         </div>
                         <div class="metric-value">₡2.8M</div>
+                        <div class="metric-details">Ventas del Mes</div>
                         <div class="metric-indicator">↑+12.5% +₡320K vs mes anterior</div>
                     </div>
 
@@ -84,6 +89,7 @@
                             </div>
                         </div>
                         <div class="metric-value">156</div>
+                        <div class="metric-details">Productos Vendidos</div>
                         <div class="metric-indicator">↑+8.2% +12 vs mes anterior</div>
                     </div>
 
@@ -94,6 +100,7 @@
                             </div>
                         </div>
                         <div class="metric-value">4.8</div>
+                        <div class="metric-details">Calificación Promedio</div>
                         <div class="metric-indicator">↑+5.1% +0.2 vs mes anterior</div>
                     </div>
 
@@ -104,6 +111,7 @@
                             </div>
                         </div>
                         <div class="metric-value">2,450</div>
+                        <div class="metric-details">Visualizaciones</div>
                         <div class="metric-indicator">↑+15.3% +325 vs mes anterior</div>
                     </div>
                 </div>
