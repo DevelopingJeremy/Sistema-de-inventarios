@@ -339,7 +339,7 @@
                                         }
                                         
                                         // Imagen del producto
-                                        $imagen_url = !empty($producto['imagen']) ? "../../" . $producto['imagen'] : 'https://via.placeholder.com/40x40/6c757d/ffffff?text=P';
+                                        $imagen_url = !empty($producto['imagen']) ? "../../" . $producto['imagen'] : '';
                                         
                                         // Formatear precio
                                         $precio_formateado = '₡' . number_format($producto['precio'], 0, ',', '.');
@@ -347,7 +347,13 @@
                                 <tr data-product-id="<?php echo $producto['ID_PRODUCTO']; ?>">
                                     <td>
                                         <div style="display: flex; align-items: center; gap: 12px;">
-                                            <img src="<?php echo htmlspecialchars($imagen_url); ?>" class="product-image" alt="<?php echo htmlspecialchars($producto['nombre_producto']); ?>" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                            <?php if (!empty($imagen_url)): ?>
+                                                <img src="<?php echo htmlspecialchars($imagen_url); ?>" class="product-image" alt="<?php echo htmlspecialchars($producto['nombre_producto']); ?>" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;">
+                                            <?php else: ?>
+                                                <div style="width: 80px; height: 80px; border-radius: 4px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border: 1px solid #e9ecef;">
+                                                    <i class="fas fa-image" style="font-size: 24px; color: #6c757d;"></i>
+                                                </div>
+                                            <?php endif; ?>
                                             <div>
                                                 <div style="font-weight: 600;"><?php echo htmlspecialchars($producto['nombre_producto']); ?></div>
                                             </div>
