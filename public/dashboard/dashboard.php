@@ -57,12 +57,6 @@
                             <span><?php date_default_timezone_set('America/Costa_Rica'); echo date('H:i') . " - UTC-6"; ?></span>
                         </div>
                     </div>
-                    <div class="welcome-actions">
-                        <button class="btn-primary">
-                            <i class="fas fa-chart-line"></i>
-                            Dashboard
-                        </button>
-                    </div>
                 </div>
 
                 <!-- Dashboard Metrics -->

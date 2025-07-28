@@ -714,4 +714,99 @@ function initTooltips() {
 }
 
 // Exportar función de tooltips
-window.initTooltips = initTooltips; 
+window.initTooltips = initTooltips;
+
+// Funcionalidad del menú móvil
+function initMobileMenu() {
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const sidebar = document.querySelector('.sidebar');
+    
+    // Crear overlay si no existe
+    let overlay = document.querySelector('.sidebar-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        document.body.appendChild(overlay);
+    }
+    
+    if (mobileMenuToggle && sidebar) {
+        mobileMenuToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+            document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : '';
+            
+            // Asegurar que el sidebar esté en la posición correcta
+            if (sidebar.classList.contains('show')) {
+                sidebar.style.left = '0';
+                sidebar.style.transform = 'translateX(0)';
+            } else {
+                sidebar.style.left = '0';
+                sidebar.style.transform = 'translateX(-100%)';
+            }
+        });
+        
+        // Cerrar sidebar al hacer clic en overlay
+        overlay.addEventListener('click', function() {
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+            document.body.style.overflow = '';
+            sidebar.style.left = '0';
+            sidebar.style.transform = 'translateX(-100%)';
+        });
+        
+        // Cerrar sidebar al hacer clic en enlaces de navegación
+        const navLinks = sidebar.querySelectorAll('.nav-item');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+                document.body.style.overflow = '';
+                sidebar.style.left = '0';
+                sidebar.style.transform = 'translateX(-100%)';
+            });
+        });
+        
+        // Cerrar sidebar al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (!sidebar.contains(e.target) && !mobileMenuToggle.contains(e.target) && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+                document.body.style.overflow = '';
+                sidebar.style.left = '0';
+                sidebar.style.transform = 'translateX(-100%)';
+            }
+        });
+        
+        // Cerrar sidebar al redimensionar la ventana
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+                document.body.style.overflow = '';
+                sidebar.style.left = '0';
+                sidebar.style.transform = 'translateX(-100%)';
+            }
+        });
+        
+        // Cerrar sidebar con tecla Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+                document.body.style.overflow = '';
+                sidebar.style.left = '0';
+                sidebar.style.transform = 'translateX(-100%)';
+            }
+        });
+    }
+}
+
+// Inicializar menú móvil cuando se carga el DOM
+document.addEventListener('DOMContentLoaded', function() {
+    initMobileMenu();
+});
+
+// Exportar función del menú móvil
+window.initMobileMenu = initMobileMenu; 

@@ -3,7 +3,7 @@
     <div class="sidebar-header">
         <div class="logo">
             <i class="fas fa-users"></i>
-            <span>Inventarios</span>
+            <span>HYBOX</span>
         </div>
     </div>
     

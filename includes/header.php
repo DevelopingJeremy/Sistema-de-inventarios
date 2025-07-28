@@ -1,9 +1,10 @@
 <header class="header">
     <div class="header-left">
+        <button class="btn-icon mobile-menu-toggle" id="mobileMenuToggle" style="display: none;">
+            <i class="fas fa-bars"></i>
+        </button>
         <div class="breadcrumb">
-            <span>Dashboard</span>
-            <i class="fas fa-chevron-right"></i>
-            <span>Dashboard</span>
+            <!-- Aqui se puede agregar el titulo de la pagina -->
         </div>
     </div>
     
@@ -38,7 +39,7 @@
         
         <button class="btn-primary" onclick="window.location.href='../inventario/agregar-producto.php'">
             <i class="fas fa-plus"></i>
-            + Nuevo Producto
+            Nuevo Producto
         </button>
     </div>
 </header> 
