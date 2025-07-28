@@ -1,19 +1,31 @@
 // Dashboard JavaScript Functions
 
 // Dark mode toggle
+let darkModeInitialized = false;
+
 function initDarkMode() {
+    // Evitar inicialización múltiple
+    if (darkModeInitialized) {
+        return;
+    }
+    
     const darkModeToggle = document.getElementById('darkModeToggle');
     const body = document.body;
     
     // Check if user has a saved preference
     const savedDarkMode = localStorage.getItem('darkMode');
+    
     if (savedDarkMode === 'true') {
         body.classList.add('dark-mode');
         updateDarkModeIcon(true);
     }
     
     if (darkModeToggle) {
-        darkModeToggle.addEventListener('click', function() {
+        // Remover event listeners existentes para evitar duplicados
+        const newToggle = darkModeToggle.cloneNode(true);
+        darkModeToggle.parentNode.replaceChild(newToggle, darkModeToggle);
+        
+        newToggle.addEventListener('click', function() {
             body.classList.toggle('dark-mode');
             const isDarkMode = body.classList.contains('dark-mode');
             
@@ -22,8 +34,66 @@ function initDarkMode() {
             
             // Update icon
             updateDarkModeIcon(isDarkMode);
+            
+            // Forzar actualización de estilos para elementos dinámicos
+            forceDarkModeUpdate(isDarkMode);
         });
+        
+        darkModeInitialized = true;
     }
+}
+
+// Función para forzar actualización de estilos en dark mode
+function forceDarkModeUpdate(isDarkMode) {
+    // Actualizar inputs y selects
+    const inputs = document.querySelectorAll('.form-input, .form-select, .form-textarea');
+    inputs.forEach(input => {
+        if (isDarkMode) {
+            input.style.backgroundColor = 'var(--bg-secondary)';
+            input.style.color = 'var(--text-primary)';
+            input.style.borderColor = 'var(--border-color)';
+        } else {
+            input.style.backgroundColor = '';
+            input.style.color = '';
+            input.style.borderColor = '';
+        }
+    });
+    
+    // Actualizar contenedores de formularios
+    const containers = document.querySelectorAll('.form-container, .form-section, .product-detail-container');
+    containers.forEach(container => {
+        if (isDarkMode) {
+            container.style.backgroundColor = 'var(--card-bg)';
+            container.style.borderColor = 'var(--border-color)';
+        } else {
+            container.style.backgroundColor = '';
+            container.style.borderColor = '';
+        }
+    });
+    
+    // Actualizar títulos y textos
+    const titles = document.querySelectorAll('.section-title, .form-label, .page-title, .page-subtitle');
+    titles.forEach(title => {
+        if (isDarkMode) {
+            title.style.color = 'var(--text-primary)';
+        } else {
+            title.style.color = '';
+        }
+    });
+    
+    // Actualizar valores de detalles
+    const values = document.querySelectorAll('.detail-value, .detail-label');
+    values.forEach(value => {
+        if (isDarkMode) {
+            if (value.classList.contains('detail-label')) {
+                value.style.color = 'var(--text-secondary)';
+            } else {
+                value.style.color = 'var(--text-primary)';
+            }
+        } else {
+            value.style.color = '';
+        }
+    });
 }
 
 // Update dark mode icon
@@ -76,7 +146,6 @@ function saveProduct() {
     console.log('Producto a guardar:', Object.fromEntries(formData));
     
     // For demo purposes, we'll just close the modal
-    alert('Producto guardado exitosamente!');
     closeModal();
 }
 
@@ -139,35 +208,9 @@ function initAddProductButton() {
 
 // Product actions (view, edit, delete)
 function initProductActions() {
-    // View product
-    document.querySelectorAll('.btn-view').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const row = this.closest('tr');
-            const productName = row.cells[0].querySelector('div div').textContent;
-            alert(`Viendo detalles de: ${productName}`);
-        });
-    });
-    
-    // Edit product
-    document.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const row = this.closest('tr');
-            const productName = row.cells[0].querySelector('div div').textContent;
-            alert(`Editando: ${productName}`);
-        });
-    });
-    
-    // Delete product
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const row = this.closest('tr');
-            const productName = row.cells[0].querySelector('div div').textContent;
-            if (confirm(`¿Estás seguro de que quieres eliminar: ${productName}?`)) {
-                row.remove();
-                alert('Producto eliminado exitosamente');
-            }
-        });
-    });
+    // View product - Functionality moved to individual pages
+    // Edit product - Functionality moved to individual pages  
+    // Delete product - Functionality moved to individual pages
 }
 
 // Utility functions
@@ -190,6 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initSearchAndFilters();
     initAddProductButton();
     initProductActions();
+    initTooltips();
     
     console.log('Dashboard inicializado correctamente');
 });
@@ -198,4 +242,476 @@ document.addEventListener('DOMContentLoaded', function() {
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.saveProduct = saveProduct;
-window.filterProducts = filterProducts; 
+window.filterProducts = filterProducts;
+
+// Productos específicos
+// Función para ver producto
+function verProducto(id) {
+    window.location.href = 'ver-producto.php?id=' + id;
+}
+
+// Función para editar producto
+function editarProducto(id) {
+    window.location.href = 'editar-producto.php?id=' + id;
+}
+
+// Función para eliminar producto
+function eliminarProducto(id, nombre) {
+    showConfirmAlert(
+        '¿Eliminar producto?',
+        `¿Estás seguro de que quieres eliminar el producto "${nombre}"?\n\nEsta acción no se puede deshacer.`,
+        function() {
+            // Crear formulario temporal para enviar la petición
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '../../src/inventario/productos/eliminar-producto.php';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'id_producto';
+            input.value = id;
+            
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    );
+}
+
+// Función para aplicar todos los filtros
+function aplicarFiltros() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    const categoryFilter = document.getElementById('categoryFilter').value.toLowerCase().trim();
+    const statusFilter = document.getElementById('statusFilter').value.toLowerCase().trim();
+    
+    const rows = document.querySelectorAll('#productsTableBody tr');
+    
+    rows.forEach(row => {
+        // Obtener todos los datos de la fila para búsqueda completa
+        const productName = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+        const category = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+        const price = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
+        const stock = row.querySelector('td:nth-child(4)')?.textContent.toLowerCase() || '';
+        const status = row.querySelector('td:nth-child(5)')?.textContent.toLowerCase() || '';
+        const codes = row.querySelector('td:nth-child(6)')?.textContent.toLowerCase() || '';
+        const supplier = row.querySelector('td:nth-child(7)')?.textContent.toLowerCase() || '';
+        
+        // Combinar todos los campos para búsqueda
+        const allFields = `${productName} ${category} ${price} ${stock} ${status} ${codes} ${supplier}`;
+        
+        // Búsqueda mejorada: buscar por términos individuales
+        let matchesSearch = true;
+        if (searchTerm && searchTerm.length > 0) {
+            const searchTerms = searchTerm.split(' ').filter(term => term.length > 0);
+            matchesSearch = searchTerms.every(term => allFields.includes(term));
+        }
+        
+        // Verificar filtros con mejor manejo de valores vacíos
+        const matchesCategory = categoryFilter.length === 0 || category.includes(categoryFilter);
+        const matchesStatus = statusFilter.length === 0 || status.includes(statusFilter);
+        
+        row.style.display = (matchesSearch && matchesCategory && matchesStatus) ? '' : 'none';
+    });
+}
+
+// Función debounce para mejorar el rendimiento de la búsqueda
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Función para mostrar alertas de éxito
+function showSuccessAlert(message) {
+    Swal.fire({
+        icon: 'success',
+        title: '¡Éxito!',
+        text: message,
+        confirmButtonText: 'Aceptar',
+        confirmButtonColor: '#007bff'
+    });
+}
+
+// Función para mostrar alertas de error
+function showErrorAlert(message) {
+    Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: message,
+        confirmButtonText: 'Aceptar',
+        confirmButtonColor: '#dc3545'
+    });
+}
+
+// Función para mostrar alertas de confirmación
+function showConfirmAlert(title, message, callback) {
+    Swal.fire({
+        icon: 'warning',
+        title: title,
+        text: message,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, continuar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            callback();
+        }
+    });
+}
+
+// Inicializar filtros de productos
+function initProductFilters() {
+    // Event listeners para todos los filtros
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(aplicarFiltros, 300));
+    }
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', aplicarFiltros);
+    }
+    if (statusFilter) {
+        statusFilter.addEventListener('change', aplicarFiltros);
+    }
+    
+    // Ejecutar filtros al cargar la página para asegurar estado inicial correcto
+    aplicarFiltros();
+}
+
+// Verificar si hay mensajes de éxito o error en la URL
+function checkUrlMessages() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const error = urlParams.get('error');
+    const message = urlParams.get('message');
+
+    if (success === '1' && message) {
+        showSuccessAlert(decodeURIComponent(message));
+    } else if (error === '1' && message) {
+        showErrorAlert(decodeURIComponent(message));
+    }
+}
+
+// Exportar funciones específicas de productos
+window.verProducto = verProducto;
+window.editarProducto = editarProducto;
+window.eliminarProducto = eliminarProducto;
+window.aplicarFiltros = aplicarFiltros;
+window.showSuccessAlert = showSuccessAlert;
+window.showErrorAlert = showErrorAlert;
+window.showConfirmAlert = showConfirmAlert;
+window.initProductFilters = initProductFilters;
+window.checkUrlMessages = checkUrlMessages;
+
+// Agregar producto específicos
+// Vista previa de imagen
+function initImagePreview() {
+    const imageInput = document.querySelector('input[name="imagen_archivo"]');
+    if (imageInput) {
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Vista previa">`;
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '<i class="fas fa-image" style="font-size: 48px; color: #ddd;"></i>';
+            }
+        });
+    }
+}
+
+// Validación del formulario de producto
+function initProductFormValidation() {
+    const productForm = document.getElementById('productForm');
+    if (productForm) {
+        productForm.addEventListener('submit', function(e) {
+            const precio = document.querySelector('input[name="precio"]').value;
+            const stock = document.querySelector('input[name="stock"]').value;
+            
+            if (parseFloat(precio) < 0) {
+                e.preventDefault();
+                return;
+            }
+            
+            if (parseInt(stock) < 0) {
+                e.preventDefault();
+                return;
+            }
+        });
+    }
+}
+
+// Inicializar funcionalidades de agregar producto
+function initAddProductPage() {
+    initImagePreview();
+    initProductFormValidation();
+    initCodeValidation();
+}
+
+// Función para validar códigos únicos
+function initCodeValidation() {
+    const codigoBarrasInput = document.querySelector('input[name="codigo_barras"]');
+    const codigoInternoInput = document.querySelector('input[name="codigo_interno"]');
+    
+    if (codigoBarrasInput) {
+        codigoBarrasInput.addEventListener('blur', function() {
+            validateUniqueCode(this.value, 'barras');
+        });
+    }
+    
+    if (codigoInternoInput) {
+        codigoInternoInput.addEventListener('blur', function() {
+            validateUniqueCode(this.value, 'interno');
+        });
+    }
+}
+
+// Función para validar códigos únicos
+function validateUniqueCode(code, type) {
+    if (!code.trim()) return;
+    
+    // Crear un indicador visual
+    const input = document.querySelector(`input[name="codigo_${type}"]`);
+    if (!input) return;
+    
+    // Mostrar indicador de carga
+    input.style.borderColor = '#ffc107';
+    
+    // Simular validación (en un caso real, harías una petición AJAX)
+    // Por ahora, solo validamos que no esté vacío
+    setTimeout(() => {
+        if (code.trim() === '') {
+            input.style.borderColor = '#dc3545';
+            showFieldError(input, 'Este campo es obligatorio');
+        } else {
+            input.style.borderColor = '#28a745';
+            hideFieldError(input);
+        }
+    }, 500);
+}
+
+// Función para mostrar error en campo
+function showFieldError(input, message) {
+    // Remover error anterior
+    hideFieldError(input);
+    
+    // Crear elemento de error
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'field-error';
+    errorDiv.style.color = '#dc3545';
+    errorDiv.style.fontSize = '0.875rem';
+    errorDiv.style.marginTop = '0.25rem';
+    errorDiv.textContent = message;
+    
+    // Insertar después del input
+    input.parentNode.appendChild(errorDiv);
+}
+
+// Función para ocultar error en campo
+function hideFieldError(input) {
+    const existingError = input.parentNode.querySelector('.field-error');
+    if (existingError) {
+        existingError.remove();
+    }
+}
+
+// Exportar funciones específicas de agregar producto
+window.initAddProductPage = initAddProductPage;
+window.initImagePreview = initImagePreview;
+window.initProductFormValidation = initProductFormValidation;
+window.initCodeValidation = initCodeValidation;
+window.validateUniqueCode = validateUniqueCode;
+window.showFieldError = showFieldError;
+window.hideFieldError = hideFieldError;
+window.forceDarkModeUpdate = forceDarkModeUpdate;
+
+// Autenticación específicos
+// Focus en el campo de correo al cargar la página de login
+function initLoginFocus() {
+    const correoInput = document.getElementById('correo');
+    if (correoInput) {
+        correoInput.focus();
+    }
+}
+
+// Mostrar alerta de error de autenticación
+function showAuthError(message) {
+    Swal.fire({
+        icon: "error",
+        title: "Error de autenticación",
+        text: message,
+        confirmButtonColor: '#007bff'
+    });
+}
+
+// Inicializar funcionalidades de autenticación
+function initAuthPage() {
+    initLoginFocus();
+}
+
+// Exportar funciones específicas de autenticación
+window.initAuthPage = initAuthPage;
+window.showAuthError = showAuthError;
+window.initLoginFocus = initLoginFocus;
+
+// Empresa específicos
+// Mostrar/ocultar campo de otra categoría
+function mostrarCampoOtro() {
+    const select = document.getElementById('categoriaSelect');
+    const campoOtro = document.getElementById('campoOtro');
+    const otraCategoriaInput = document.getElementById('otraCategoriaInput');
+
+    if (select.value === 'Otro') {
+        campoOtro.style.display = 'block';
+        otraCategoriaInput.required = true;
+    } else {
+        campoOtro.style.display = 'none';
+        otraCategoriaInput.required = false;
+        otraCategoriaInput.value = '';
+    }
+}
+
+// Actualizar label del archivo cuando se selecciona
+function initFileUpload() {
+    const logoInput = document.getElementById('logoInput');
+    if (logoInput) {
+        logoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const label = document.querySelector('.file-upload-label span');
+            
+            if (file) {
+                label.textContent = file.name;
+                document.querySelector('.file-upload-label').style.borderColor = 'var(--success-color)';
+                document.querySelector('.file-upload-label').style.background = 'rgba(40, 167, 69, 0.05)';
+            } else {
+                label.textContent = 'Haz clic para seleccionar un logo';
+                document.querySelector('.file-upload-label').style.borderColor = 'var(--border-color)';
+                document.querySelector('.file-upload-label').style.background = 'var(--bg-primary)';
+            }
+        });
+    }
+}
+
+// Inicializar funcionalidades de empresa
+function initCompanyPage() {
+    initFileUpload();
+}
+
+// Exportar funciones específicas de empresa
+window.mostrarCampoOtro = mostrarCampoOtro;
+window.initFileUpload = initFileUpload;
+window.initCompanyPage = initCompanyPage;
+
+// Función para inicializar tooltips
+function initTooltips() {
+    const tooltipIcons = document.querySelectorAll('.tooltip-icon');
+    
+    tooltipIcons.forEach(icon => {
+        const tooltip = icon.getAttribute('data-tooltip');
+        
+        // Crear tooltip personalizado
+        icon.addEventListener('mouseenter', function(e) {
+            // Remover tooltip existente si hay uno
+            if (icon.tooltipElement) {
+                icon.tooltipElement.remove();
+            }
+            
+            const tooltipElement = document.createElement('div');
+            tooltipElement.className = 'custom-tooltip';
+            tooltipElement.textContent = tooltip;
+            tooltipElement.style.cssText = `
+                position: fixed;
+                background: rgba(0, 0, 0, 0.95);
+                color: white;
+                padding: 10px 14px;
+                border-radius: 8px;
+                font-size: 13px;
+                max-width: 280px;
+                z-index: 10000;
+                pointer-events: none;
+                white-space: normal;
+                word-wrap: break-word;
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            `;
+            
+            document.body.appendChild(tooltipElement);
+            
+            // Posicionar tooltip de forma responsiva
+            const rect = icon.getBoundingClientRect();
+            const tooltipRect = tooltipElement.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            let top = rect.top - tooltipRect.height - 10;
+            
+            // Ajustar si se sale por la izquierda
+            if (left < 10) {
+                left = 10;
+            }
+            
+            // Ajustar si se sale por la derecha
+            if (left + tooltipRect.width > viewportWidth - 10) {
+                left = viewportWidth - tooltipRect.width - 10;
+            }
+            
+            // Ajustar si se sale por arriba
+            if (top < 10) {
+                top = rect.bottom + 10;
+            }
+            
+            // Ajustar si se sale por abajo
+            if (top + tooltipRect.height > viewportHeight - 10) {
+                top = rect.top - tooltipRect.height - 10;
+            }
+            
+            tooltipElement.style.left = left + 'px';
+            tooltipElement.style.top = top + 'px';
+            
+            // Guardar referencia para remover
+            icon.tooltipElement = tooltipElement;
+        });
+        
+        icon.addEventListener('mouseleave', function() {
+            if (icon.tooltipElement) {
+                icon.tooltipElement.remove();
+                icon.tooltipElement = null;
+            }
+        });
+        
+        // También remover tooltip al hacer scroll o resize
+        window.addEventListener('scroll', function() {
+            if (icon.tooltipElement) {
+                icon.tooltipElement.remove();
+                icon.tooltipElement = null;
+            }
+        });
+        
+        window.addEventListener('resize', function() {
+            if (icon.tooltipElement) {
+                icon.tooltipElement.remove();
+                icon.tooltipElement = null;
+            }
+        });
+    });
+}
+
+// Exportar función de tooltips
+window.initTooltips = initTooltips; 

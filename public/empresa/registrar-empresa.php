@@ -20,102 +20,7 @@
     <title>Registrar Empresa | Hybox</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/auth-styles.css">
-    <style>
-        /* Estilos específicos para el formulario de empresa */
-        .company-form {
-            max-width: 600px;
-        }
-        
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        
-        .form-row.full-width {
-            grid-template-columns: 1fr;
-        }
-        
-        .file-upload {
-            position: relative;
-            display: inline-block;
-            width: 100%;
-        }
-        
-        .file-upload input[type=file] {
-            position: absolute;
-            left: -9999px;
-        }
-        
-        .file-upload-label {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12px 16px;
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-primary);
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            min-height: 60px;
-        }
-        
-        .file-upload-label:hover {
-            border-color: var(--primary-color);
-            background: rgba(0, 123, 255, 0.05);
-        }
-        
-        .file-upload-label i {
-            margin-right: 8px;
-            font-size: 1.2rem;
-        }
-        
-        .select-wrapper {
-            position: relative;
-        }
-        
-        .select-wrapper::after {
-            content: '\f107';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-            color: var(--text-secondary);
-        }
-        
-        .form-select {
-            padding: 12px 16px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            width: 100%;
-            appearance: none;
-            cursor: pointer;
-        }
-        
-        .form-select:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-        }
-        
-        .form-select option {
-            padding: 8px;
-        }
-        
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+
 </head>
 
 <body>
@@ -275,37 +180,11 @@
 
     </div>
 
+    <script src="../assets/js/main.js"></script>
     <script>
-        // Mostrar/ocultar campo de otra categoría
-        function mostrarCampoOtro() {
-            const select = document.getElementById('categoriaSelect');
-            const campoOtro = document.getElementById('campoOtro');
-            const otraCategoriaInput = document.getElementById('otraCategoriaInput');
-
-            if (select.value === 'Otro') {
-                campoOtro.style.display = 'block';
-                otraCategoriaInput.required = true;
-            } else {
-                campoOtro.style.display = 'none';
-                otraCategoriaInput.required = false;
-                otraCategoriaInput.value = '';
-            }
-        }
-
-        // Actualizar label del archivo cuando se selecciona
-        document.getElementById('logoInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const label = document.querySelector('.file-upload-label span');
-            
-            if (file) {
-                label.textContent = file.name;
-                document.querySelector('.file-upload-label').style.borderColor = 'var(--success-color)';
-                document.querySelector('.file-upload-label').style.background = 'rgba(40, 167, 69, 0.05)';
-            } else {
-                label.textContent = 'Haz clic para seleccionar un logo';
-                document.querySelector('.file-upload-label').style.borderColor = 'var(--border-color)';
-                document.querySelector('.file-upload-label').style.background = 'var(--bg-primary)';
-            }
+        // Inicializar funcionalidades específicas de empresa
+        document.addEventListener('DOMContentLoaded', function() {
+            initCompanyPage();
         });
     </script>
 </body>

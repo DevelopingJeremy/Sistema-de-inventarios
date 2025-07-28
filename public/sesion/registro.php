@@ -82,16 +82,15 @@
         </div>
     </div>
 
-    <?php if ($error): ?>
+    <script src="../assets/js/main.js"></script>
     <script>
-    Swal.fire({
-        icon: "error",
-        title: "Error en el registro",
-        text: "<?php echo $mensajeError ?>",
-        confirmButtonColor: '#007bff'
-    });
+        <?php if ($error): ?>
+        // Mostrar error de registro
+        document.addEventListener('DOMContentLoaded', function() {
+            showAuthError("<?php echo $mensajeError ?>");
+        });
+        <?php endif; ?>
     </script>
-    <?php endif; ?>
 </body>
 
 </html>

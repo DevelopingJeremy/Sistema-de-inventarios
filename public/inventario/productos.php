@@ -2,6 +2,23 @@
     include('../../config/db.php');
     require_once('../../src/auth/sesion/verificaciones-sesion.php');
     validTotales('../sesion/iniciar-sesion.php', '../sesion/envio-correo.php', '../empresa/registrar-empresa.php');
+    
+    // Obtener datos para los filtros
+    $id_usuario = $_SESSION['id_usuario'];
+    
+    // Obtener categorías de la empresa
+    $stmt_categorias = $conn->prepare("
+        SELECT DISTINCT p.categoria 
+        FROM t_productos p 
+        INNER JOIN t_empresa e ON p.ID_EMPRESA = e.ID_EMPRESA 
+        WHERE e.ID_DUEÑO = ? AND p.categoria IS NOT NULL AND p.categoria != ''
+        ORDER BY p.categoria
+    ");
+    $stmt_categorias->bind_param("i", $id_usuario);
+    $stmt_categorias->execute();
+    $categorias = $stmt_categorias->get_result();
+    
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -18,6 +35,8 @@
         
         <div class="main-content">
             <?php include '../../includes/header.php'; ?>
+            
+
             
             <div class="content">
                 <div class="page-header">
@@ -219,38 +238,56 @@
                 <div class="products-section">
                     <div class="products-header">
                         <h2 class="section-title">Lista de Productos</h2>
+                        <button class="btn-primary" onclick="window.location.href='agregar-producto.php'">
+                            <i class="fas fa-plus"></i> Agregar Producto
+                        </button>
                     </div>
+
+                    <!-- Mensajes de éxito/error -->
+                    <?php if (isset($_GET['success']) && $_GET['success'] == '1'): ?>
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            <?php echo htmlspecialchars($_GET['message'] ?? 'Operación completada exitosamente'); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (isset($_GET['error']) && $_GET['error'] == '1'): ?>
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <?php echo htmlspecialchars($_GET['message'] ?? 'Ha ocurrido un error'); ?>
+                        </div>
+                    <?php endif; ?>
 
                     <!-- Search and Filters -->
                     <div class="filters-section">
                         <div class="search-box">
                             <i class="fas fa-search search-icon"></i>
-                            <input type="text" class="search-input" placeholder="Buscar productos..." id="searchInput">
+                            <input type="text" class="search-input" placeholder="Buscar por nombre, código de barras, código interno, categoría, proveedor..." id="searchInput">
                         </div>
                         
                         <div class="filter-group">
                             <select class="filter-select" id="categoryFilter">
                                 <option value="">Todas las categorías</option>
-                                <option value="Electrónicos">Electrónicos</option>
-                                <option value="Accesorios">Accesorios</option>
-                                <option value="Ropa">Ropa</option>
-                                <option value="Hogar">Hogar</option>
+                                <?php 
+                                if ($categorias->num_rows > 0) {
+                                    while ($categoria = $categorias->fetch_assoc()): ?>
+                                        <option value="<?php echo htmlspecialchars($categoria['categoria']); ?>">
+                                            <?php echo htmlspecialchars($categoria['categoria']); ?>
+                                        </option>
+                                    <?php endwhile;
+                                } else { ?>
+                                    <option value="" disabled>No hay categorías</option>
+                                <?php } ?>
                             </select>
                             
                             <select class="filter-select" id="statusFilter">
                                 <option value="">Todos los estados</option>
                                 <option value="Activo">Activo</option>
-                                <option value="Inactivo">Inactivo</option>
+                                <option value="Agotado">Agotado</option>
                                 <option value="Stock Bajo">Stock Bajo</option>
                             </select>
                             
-                            <select class="filter-select" id="supplierFilter">
-                                <option value="">Todos los proveedores</option>
-                                <option value="Apple">Apple</option>
-                                <option value="Samsung">Samsung</option>
-                                <option value="HP">HP</option>
-                                <option value="Dell">Dell</option>
-                            </select>
+
                         </div>
                     </div>
 
@@ -264,126 +301,110 @@
                                     <th>Precio</th>
                                     <th>Stock</th>
                                     <th>Estado</th>
+                                    <th>Códigos</th>
                                     <th>Proveedor</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="productsTableBody">
-                                <tr>
+                                <?php
+                                // Obtener productos de la empresa actual
+                                $id_usuario = $_SESSION['id_usuario'];
+                                $stmt = $conn->prepare("
+                                    SELECT p.*, e.ID_EMPRESA 
+                                    FROM t_productos p 
+                                    INNER JOIN t_empresa e ON p.ID_EMPRESA = e.ID_EMPRESA 
+                                    WHERE e.ID_DUEÑO = ? 
+                                    ORDER BY p.fecha_creacion DESC
+                                ");
+                                $stmt->bind_param("i", $id_usuario);
+                                $stmt->execute();
+                                $result = $stmt->get_result();
+                                
+                                if ($result->num_rows > 0) {
+                                    while ($producto = $result->fetch_assoc()) {
+                                        // Determinar el estado del producto
+                                        $estado_clase = '';
+                                        $estado_texto = '';
+                                        
+                                        if ($producto['stock'] <= 0) {
+                                            $estado_clase = 'status-inactive';
+                                            $estado_texto = 'Agotado';
+                                        } elseif ($producto['stock'] <= $producto['stock_minimo']) {
+                                            $estado_clase = 'status-low-stock';
+                                            $estado_texto = 'Stock Bajo';
+                                        } else {
+                                            $estado_clase = 'status-active';
+                                            $estado_texto = 'Activo';
+                                        }
+                                        
+                                        // Imagen del producto
+                                        $imagen_url = !empty($producto['imagen']) ? "../../" . $producto['imagen'] : 'https://via.placeholder.com/40x40/6c757d/ffffff?text=P';
+                                        
+                                        // Formatear precio
+                                        $precio_formateado = '₡' . number_format($producto['precio'], 0, ',', '.');
+                                ?>
+                                <tr data-product-id="<?php echo $producto['ID_PRODUCTO']; ?>">
                                     <td>
                                         <div style="display: flex; align-items: center; gap: 12px;">
-                                            <img src="https://via.placeholder.com/40x40/6f42c1/ffffff?text=L" class="product-image" alt="Laptop">
+                                            <img src="<?php echo htmlspecialchars($imagen_url); ?>" class="product-image" alt="<?php echo htmlspecialchars($producto['nombre_producto']); ?>" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
                                             <div>
-                                                <div style="font-weight: 600;">Laptop HP Pavilion</div>
-                                                <div style="font-size: 0.8rem; color: #6c757d;">#PROD001</div>
+                                                <div style="font-weight: 600;"><?php echo htmlspecialchars($producto['nombre_producto']); ?></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>Electrónicos</td>
-                                    <td>₡250,000</td>
-                                    <td>45</td>
-                                    <td><span class="status-badge status-active">Activo</span></td>
-                                    <td>HP</td>
+                                    <td><?php echo htmlspecialchars($producto['categoria'] ?: 'Sin categoría'); ?></td>
+                                    <td><?php echo $precio_formateado; ?></td>
+                                    <td><?php echo $producto['stock']; ?></td>
+                                    <td><span class="status-badge <?php echo $estado_clase; ?>"><?php echo $estado_texto; ?></span></td>
                                     <td>
-                                        <div class="action-buttons">
-                                            <button class="btn-action btn-view" title="Ver"><i class="fas fa-eye"></i></button>
-                                            <button class="btn-action btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
-                                            <button class="btn-action btn-delete" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                        <div style="font-size: 0.85rem;">
+                                            <?php if (!empty($producto['codigo_interno'])): ?>
+                                                <div style="margin-bottom: 4px;">
+                                                    <strong>Interno:</strong> <?php echo htmlspecialchars($producto['codigo_interno']); ?>
                                         </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="display: flex; align-items: center; gap: 12px;">
-                                            <img src="https://via.placeholder.com/40x40/28a745/ffffff?text=i" class="product-image" alt="iPhone">
+                                            <?php endif; ?>
+                                            <?php if (!empty($producto['codigo_barras'])): ?>
                                             <div>
-                                                <div style="font-weight: 600;">iPhone 13 Pro</div>
-                                                <div style="font-size: 0.8rem; color: #6c757d;">#PROD002</div>
+                                                    <strong>Barras:</strong> <?php echo htmlspecialchars($producto['codigo_barras']); ?>
                                             </div>
+                                            <?php endif; ?>
+                                            <?php if (empty($producto['codigo_interno']) && empty($producto['codigo_barras'])): ?>
+                                                <div style="color: #6c757d; font-style: italic;">
+                                                    Sin códigos
+                                        </div>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td>Electrónicos</td>
-                                    <td>₡450,000</td>
-                                    <td>12</td>
-                                    <td><span class="status-badge status-low-stock">Stock Bajo</span></td>
-                                    <td>Apple</td>
+                                    <td><?php echo htmlspecialchars($producto['proveedor'] ?: 'Sin proveedor'); ?></td>
                                     <td>
                                         <div class="action-buttons">
-                                            <button class="btn-action btn-view" title="Ver"><i class="fas fa-eye"></i></button>
-                                            <button class="btn-action btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
-                                            <button class="btn-action btn-delete" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                            <button class="btn-action btn-view" title="Ver" onclick="verProducto(<?php echo $producto['ID_PRODUCTO']; ?>)">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn-action btn-edit" title="Editar" onclick="editarProducto(<?php echo $producto['ID_PRODUCTO']; ?>)">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn-action btn-delete" title="Eliminar" onclick="eliminarProducto(<?php echo $producto['ID_PRODUCTO']; ?>, '<?php echo htmlspecialchars($producto['nombre_producto']); ?>')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
+                                <?php
+                                    }
+                                } else {
+                                ?>
                                 <tr>
-                                    <td>
-                                        <div style="display: flex; align-items: center; gap: 12px;">
-                                            <img src="https://via.placeholder.com/40x40/007bff/ffffff?text=A" class="product-image" alt="AirPods">
-                                            <div>
-                                                <div style="font-weight: 600;">AirPods Pro</div>
-                                                <div style="font-size: 0.8rem; color: #6c757d;">#PROD003</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>Accesorios</td>
-                                    <td>₡90,000</td>
-                                    <td>78</td>
-                                    <td><span class="status-badge status-active">Activo</span></td>
-                                    <td>Apple</td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn-action btn-view" title="Ver"><i class="fas fa-eye"></i></button>
-                                            <button class="btn-action btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
-                                            <button class="btn-action btn-delete" title="Eliminar"><i class="fas fa-trash"></i></button>
-                                        </div>
+                                    <td colspan="8" style="text-align: center; padding: 40px; color: #6c757d;">
+                                        <i class="fas fa-box-open" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                                        <div>No hay productos registrados</div>
+                                        <div style="font-size: 0.9rem; margin-top: 8px;">Haz clic en "Agregar Producto" para comenzar</div>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td>
-                                        <div style="display: flex; align-items: center; gap: 12px;">
-                                            <img src="https://via.placeholder.com/40x40/e83e8c/ffffff?text=S" class="product-image" alt="Samsung">
-                                            <div>
-                                                <div style="font-weight: 600;">Samsung Galaxy S21</div>
-                                                <div style="font-size: 0.8rem; color: #6c757d;">#PROD004</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>Electrónicos</td>
-                                    <td>₡380,000</td>
-                                    <td>23</td>
-                                    <td><span class="status-badge status-active">Activo</span></td>
-                                    <td>Samsung</td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn-action btn-view" title="Ver"><i class="fas fa-eye"></i></button>
-                                            <button class="btn-action btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
-                                            <button class="btn-action btn-delete" title="Eliminar"><i class="fas fa-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="display: flex; align-items: center; gap: 12px;">
-                                            <img src="https://via.placeholder.com/40x40/dc3545/ffffff?text=D" class="product-image" alt="Dell">
-                                            <div>
-                                                <div style="font-weight: 600;">Dell XPS 13</div>
-                                                <div style="font-size: 0.8rem; color: #6c757d;">#PROD005</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>Electrónicos</td>
-                                    <td>₡520,000</td>
-                                    <td>8</td>
-                                    <td><span class="status-badge status-inactive">Inactivo</span></td>
-                                    <td>Dell</td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn-action btn-view" title="Ver"><i class="fas fa-eye"></i></button>
-                                            <button class="btn-action btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
-                                            <button class="btn-action btn-delete" title="Eliminar"><i class="fas fa-trash"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <?php
+                                }
+                                ?>
                             </tbody>
                         </table>
                     </div>
@@ -392,78 +413,15 @@
         </div>
     </div>
 
-    <!-- Add Product Modal -->
-    <div id="addProductModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Añadir Nuevo Producto</h2>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="addProductForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Nombre del Producto</label>
-                            <input type="text" class="form-input" name="productName" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Código del Producto</label>
-                            <input type="text" class="form-input" name="productCode" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Categoría</label>
-                            <select class="form-input" name="category" required>
-                                <option value="">Seleccionar categoría</option>
-                                <option value="Electrónicos">Electrónicos</option>
-                                <option value="Accesorios">Accesorios</option>
-                                <option value="Ropa">Ropa</option>
-                                <option value="Hogar">Hogar</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Precio</label>
-                            <input type="number" class="form-input" name="price" step="0.01" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Stock</label>
-                            <input type="number" class="form-input" name="stock" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Proveedor</label>
-                            <select class="form-input" name="supplier" required>
-                                <option value="">Seleccionar proveedor</option>
-                                <option value="Apple">Apple</option>
-                                <option value="Samsung">Samsung</option>
-                                <option value="HP">HP</option>
-                                <option value="Dell">Dell</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Descripción</label>
-                        <textarea class="form-input form-textarea" name="description" rows="3"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">URL de la Imagen</label>
-                        <input type="url" class="form-input" name="imageUrl" placeholder="https://ejemplo.com/imagen.jpg">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
-                <button type="button" class="btn-primary" onclick="saveProduct()">Guardar Producto</button>
-            </div>
-        </div>
-    </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../assets/js/main.js"></script>
+    <script>
+        // Inicializar funcionalidades específicas de productos
+        document.addEventListener('DOMContentLoaded', function() {
+            initDarkMode();
+            initProductFilters();
+            checkUrlMessages();
+        });
+    </script>
 </body>
 </html> 

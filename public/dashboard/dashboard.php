@@ -360,7 +360,7 @@
                             <i class="fas fa-arrow-right quick-action-arrow"></i>
                         </div>
                         
-                        <div class="quick-action-card" style="--card-color: #3b82f6;" onclick="window.location.href='inventario/productos.php'">
+                        <div class="quick-action-card" style="--card-color: #3b82f6;" onclick="window.location.href='../inventario/agregar-producto.php'">
                             <div class="quick-action-icon">
                                 <i class="fas fa-box"></i>
                             </div>
@@ -410,34 +410,38 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../assets/js/main.js"></script>
-
-    <!-- PopUps -->
-
-    <!-- Mensaje Exito -->
-    <?php if($exito): ?>
     <script>
-    Swal.fire({
-        position: "center",
-        icon: "success",
-        title: "<?php echo $mensajeExito ?>",
-        showConfirmButton: false,
-        timer: 1500
-    });
-    </script>
-    <?php endif; ?>
+        // Inicializar funcionalidades del dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initDarkMode();
+        });
+        
+        <?php if($exito): ?>
+        // Mostrar mensaje de éxito
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "<?php echo $mensajeExito ?>",
+                showConfirmButton: false,
+                timer: 1500
+            });
+        });
+        <?php endif; ?>
 
-
-    <!-- Mensaje Error -->
-    <?php if ($error): ?>
-    <script>
-    Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "<?php echo $mensajeError ?>"
-    });
+        <?php if ($error): ?>
+        // Mostrar mensaje de error
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                icon: "error",
+                title: "Oops...",
+                text: "<?php echo $mensajeError ?>"
+            });
+        });
+        <?php endif; ?>
     </script>
-    <?php endif; ?>
 </body>
 
 </html>

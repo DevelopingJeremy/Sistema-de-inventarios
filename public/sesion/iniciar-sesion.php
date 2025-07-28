@@ -58,21 +58,20 @@
         </div>
     </div>
 
+    <script src="../assets/js/main.js"></script>
     <script>
-        // Focus en el correo apenas entrar al sistema
-        document.getElementById('correo').focus();
-    </script>
-
-    <?php if ($error): ?>
-    <script>
-        Swal.fire({
-            icon: "error",
-            title: "Error de autenticación",
-            text: "<?php echo $mensajeError ?>",
-            confirmButtonColor: '#007bff'
+        // Inicializar funcionalidades de autenticación
+        document.addEventListener('DOMContentLoaded', function() {
+            initAuthPage();
         });
+        
+        <?php if ($error): ?>
+        // Mostrar error de autenticación
+        document.addEventListener('DOMContentLoaded', function() {
+            showAuthError("<?php echo $mensajeError ?>");
+        });
+        <?php endif; ?>
     </script>
-    <?php endif; ?>
 </body>
 
 </html>
