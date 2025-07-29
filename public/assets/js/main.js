@@ -945,4 +945,412 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Exportar función del menú móvil
-window.initMobileMenu = initMobileMenu; 
+window.initMobileMenu = initMobileMenu;
+
+// ========================================
+// FUNCIONES ESPECÍFICAS DE INVENTARIO
+// ========================================
+
+// ========================================
+// FUNCIONES DE PRODUCTOS
+// ========================================
+
+// Función para inicializar filtros de productos (versión mejorada)
+function initProductFilters() {
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const stockFilter = document.getElementById('stockFilter');
+    const sortFilter = document.getElementById('sortFilter');
+    const productRows = document.querySelectorAll('.product-row');
+
+    // Función para filtrar productos
+    function filterProducts() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedCategory = categoryFilter.value.toLowerCase();
+        const selectedStatus = statusFilter.value.toLowerCase();
+        const selectedStock = stockFilter.value.toLowerCase();
+        const selectedSort = sortFilter.value;
+
+        let visibleProducts = [];
+
+        productRows.forEach(row => {
+            const nombre = row.dataset.nombre;
+            const categoria = row.dataset.categoria.toLowerCase();
+            const estado = row.dataset.estado.toLowerCase();
+            const stock = parseInt(row.dataset.stock);
+            const precio = parseFloat(row.dataset.precio);
+            const codigoBarras = row.dataset.codigoBarras.toLowerCase();
+            const codigoInterno = row.dataset.codigoInterno.toLowerCase();
+            const proveedor = row.dataset.proveedor;
+
+            // Filtros
+            let showRow = true;
+
+            // Filtro de búsqueda
+            if (searchTerm && !(
+                nombre.includes(searchTerm) ||
+                categoria.includes(searchTerm) ||
+                codigoBarras.includes(searchTerm) ||
+                codigoInterno.includes(searchTerm) ||
+                proveedor.includes(searchTerm)
+            )) {
+                showRow = false;
+            }
+
+            // Filtro de categoría
+            if (selectedCategory && categoria !== selectedCategory) {
+                showRow = false;
+            }
+
+            // Filtro de estado
+            if (selectedStatus && estado !== selectedStatus) {
+                showRow = false;
+            }
+
+            // Filtro de stock
+            if (selectedStock) {
+                if (selectedStock === 'con_stock' && stock <= 0) {
+                    showRow = false;
+                } else if (selectedStock === 'sin_stock' && stock > 0) {
+                    showRow = false;
+                } else if (selectedStock === 'stock_bajo' && stock > 5) {
+                    showRow = false;
+                }
+            }
+
+            if (showRow) {
+                row.style.display = '';
+                visibleProducts.push(row);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Ordenar productos
+        sortProducts(visibleProducts, selectedSort);
+    }
+
+    // Función para ordenar productos
+    function sortProducts(products, sortType) {
+        const tbody = document.getElementById('productsTableBody');
+        
+        products.sort((a, b) => {
+            switch (sortType) {
+                case 'fecha_desc':
+                    return 0; // Ya están ordenados por fecha
+                case 'fecha_asc':
+                    return 0; // Mantener orden original
+                case 'nombre_asc':
+                    return a.dataset.nombre.localeCompare(b.dataset.nombre);
+                case 'nombre_desc':
+                    return b.dataset.nombre.localeCompare(a.dataset.nombre);
+                case 'precio_asc':
+                    return parseFloat(a.dataset.precio) - parseFloat(b.dataset.precio);
+                case 'precio_desc':
+                    return parseFloat(b.dataset.precio) - parseFloat(a.dataset.precio);
+                case 'stock_asc':
+                    return parseInt(a.dataset.stock) - parseInt(b.dataset.stock);
+                case 'stock_desc':
+                    return parseInt(b.dataset.stock) - parseInt(a.dataset.stock);
+                default:
+                    return 0;
+            }
+        });
+
+        // Reordenar en el DOM
+        products.forEach(product => {
+            tbody.appendChild(product);
+        });
+    }
+
+    // Event listeners
+    if (searchInput) searchInput.addEventListener('input', filterProducts);
+    if (categoryFilter) categoryFilter.addEventListener('change', filterProducts);
+    if (statusFilter) statusFilter.addEventListener('change', filterProducts);
+    if (stockFilter) stockFilter.addEventListener('change', filterProducts);
+    if (sortFilter) sortFilter.addEventListener('change', filterProducts);
+}
+
+// Función para nuevo movimiento
+function nuevoMovimiento(id, nombre) {
+    Swal.fire({
+        title: 'Nuevo Movimiento',
+        text: `¿Qué tipo de movimiento deseas realizar para "${nombre}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Entrada',
+        cancelButtonText: 'Salida',
+        showDenyButton: true,
+        denyButtonText: 'Cancelar',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = `nuevo-movimiento.php?producto=${id}&tipo=entrada`;
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            window.location.href = `nuevo-movimiento.php?producto=${id}&tipo=salida`;
+        }
+    });
+}
+
+// Función para descargar PDF de productos
+function descargarPDFProductos() {
+    window.open('../../src/inventario/generar-pdf-productos.php', '_blank');
+}
+
+// ========================================
+// FUNCIONES DE CATEGORÍAS
+// ========================================
+
+// Función para inicializar filtros de categorías
+function initCategoryFilters() {
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const productFilter = document.getElementById('productFilter');
+    const sortFilter = document.getElementById('sortFilter');
+    const categoryRows = document.querySelectorAll('.category-row');
+
+    // Función para filtrar categorías
+    function filterCategories() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedStatus = statusFilter.value.toLowerCase();
+        const selectedProduct = productFilter.value.toLowerCase();
+        const selectedSort = sortFilter.value;
+
+        let visibleCategories = [];
+
+        categoryRows.forEach(row => {
+            const nombre = row.dataset.nombre;
+            const descripcion = row.dataset.descripcion;
+            const estado = row.dataset.estado.toLowerCase();
+            const productos = parseInt(row.dataset.productos);
+
+            // Filtros
+            let showRow = true;
+
+            // Filtro de búsqueda
+            if (searchTerm && !(
+                nombre.includes(searchTerm) ||
+                descripcion.includes(searchTerm)
+            )) {
+                showRow = false;
+            }
+
+            // Filtro de estado
+            if (selectedStatus && estado !== selectedStatus) {
+                showRow = false;
+            }
+
+            // Filtro de productos
+            if (selectedProduct) {
+                if (selectedProduct === 'con_productos' && productos === 0) {
+                    showRow = false;
+                } else if (selectedProduct === 'sin_productos' && productos > 0) {
+                    showRow = false;
+                }
+            }
+
+            if (showRow) {
+                row.style.display = '';
+                visibleCategories.push(row);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Ordenar categorías
+        sortCategories(visibleCategories, selectedSort);
+    }
+
+    // Función para ordenar categorías
+    function sortCategories(categories, sortType) {
+        const tbody = document.getElementById('categoriesTableBody');
+        
+        categories.sort((a, b) => {
+            switch (sortType) {
+                case 'nombre_asc':
+                    return a.dataset.nombre.localeCompare(b.dataset.nombre);
+                case 'nombre_desc':
+                    return b.dataset.nombre.localeCompare(a.dataset.nombre);
+                case 'fecha_desc':
+                    return parseInt(b.dataset.fecha) - parseInt(a.dataset.fecha);
+                case 'fecha_asc':
+                    return parseInt(a.dataset.fecha) - parseInt(b.dataset.fecha);
+                case 'productos_desc':
+                    return parseInt(b.dataset.productos) - parseInt(a.dataset.productos);
+                case 'productos_asc':
+                    return parseInt(a.dataset.productos) - parseInt(a.dataset.productos);
+                default:
+                    return 0;
+            }
+        });
+
+        // Reordenar en el DOM
+        categories.forEach(category => {
+            tbody.appendChild(category);
+        });
+    }
+
+    // Event listeners
+    if (searchInput) searchInput.addEventListener('input', filterCategories);
+    if (statusFilter) statusFilter.addEventListener('change', filterCategories);
+    if (productFilter) productFilter.addEventListener('change', filterCategories);
+    if (sortFilter) sortFilter.addEventListener('change', filterCategories);
+}
+
+// Funciones de acciones de categorías
+function verCategoria(id) {
+    window.location.href = `ver-categoria.php?id=${id}`;
+}
+
+function editarCategoria(id) {
+    window.location.href = `editar-categoria.php?id=${id}`;
+}
+
+function eliminarCategoria(id, nombre) {
+    Swal.fire({
+        title: '¿Eliminar categoría?',
+        text: `¿Estás seguro de que deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Crear formulario para enviar la solicitud
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '../../src/inventario/categorias/eliminar-categoria.php';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'id_categoria';
+            input.value = id;
+            
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+// Función para descargar PDF de categorías
+function descargarPDFCategorias() {
+    window.open('../../src/inventario/generar-pdf-categorias.php', '_blank');
+}
+
+// ========================================
+// FUNCIONES DE MOVIMIENTOS
+// ========================================
+
+// Función para ver detalles del movimiento
+function verMovimiento(id) {
+    window.location.href = `ver-movimiento.php?id=${id}`;
+}
+
+// Función para descargar PDF de movimientos
+function descargarPDFMovimientos() {
+    window.open('../../src/inventario/generar-pdf-movimientos.php', '_blank');
+}
+
+// ========================================
+// FUNCIONES DE AJUSTES
+// ========================================
+
+// Función para aplicar filtros automáticamente (ajustes)
+function applyFilters() {
+    const form = document.querySelector('.filters-section');
+    if (form) {
+        form.submit();
+    }
+}
+
+// Función para inicializar filtros automáticos de ajustes
+function initAdjustmentFilters() {
+    const searchInput = document.querySelector('input[name="producto"]');
+    const filterSelect = document.querySelector('select[name="tipo"]');
+    const dateDesde = document.querySelector('input[name="fecha_desde"]');
+    const dateHasta = document.querySelector('input[name="fecha_hasta"]');
+    
+    // Event listeners para filtros automáticos
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(applyFilters, 500); // Esperar 500ms después de que el usuario deje de escribir
+        });
+    }
+    
+    if (filterSelect) {
+        filterSelect.addEventListener('change', applyFilters);
+    }
+    
+    if (dateDesde) {
+        dateDesde.addEventListener('change', applyFilters);
+    }
+    
+    if (dateHasta) {
+        dateHasta.addEventListener('change', applyFilters);
+    }
+}
+
+// Función para descargar PDF de ajustes
+function descargarPDFAjustes() {
+    window.open('../../src/inventario/generar-pdf-ajustes.php', '_blank');
+}
+
+// ========================================
+// FUNCIONES DE GRÁFICAS
+// ========================================
+
+// Inicializar gráfica de distribución
+function initDistribucionChart() {
+    const ctx = document.getElementById('distribucionChart');
+    if (!ctx) {
+        console.log('Canvas no encontrado');
+        return;
+    }
+
+    try {
+        // Los datos se pasan desde PHP, por lo que esta función debe ser llamada
+        // desde el archivo PHP con los datos específicos
+        console.log('Función initDistribucionChart llamada');
+    } catch (error) {
+        console.error('Error al inicializar la gráfica:', error);
+        ctx.style.display = 'none';
+        const placeholder = document.createElement('div');
+        placeholder.style.cssText = 'height: 200px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;';
+        placeholder.textContent = 'Error al cargar la gráfica';
+        ctx.parentNode.appendChild(placeholder);
+    }
+}
+
+// ========================================
+// EXPORTAR FUNCIONES DE INVENTARIO
+// ========================================
+
+// Productos
+window.initProductFilters = initProductFilters;
+window.nuevoMovimiento = nuevoMovimiento;
+window.descargarPDFProductos = descargarPDFProductos;
+
+// Categorías
+window.initCategoryFilters = initCategoryFilters;
+window.verCategoria = verCategoria;
+window.editarCategoria = editarCategoria;
+window.eliminarCategoria = eliminarCategoria;
+window.descargarPDFCategorias = descargarPDFCategorias;
+
+// Movimientos
+window.verMovimiento = verMovimiento;
+window.descargarPDFMovimientos = descargarPDFMovimientos;
+
+// Ajustes
+window.applyFilters = applyFilters;
+window.initAdjustmentFilters = initAdjustmentFilters;
+window.descargarPDFAjustes = descargarPDFAjustes;
+
+// Gráficas
+window.initDistribucionChart = initDistribucionChart; 

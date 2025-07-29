@@ -291,48 +291,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             initDarkMode();
             initMobileMenu();
-            
-            // Funcionalidad de búsqueda en tiempo real
-            const searchInput = document.querySelector('input[name="producto"]');
-            const filterSelect = document.querySelector('select[name="tipo"]');
-            const dateDesde = document.querySelector('input[name="fecha_desde"]');
-            const dateHasta = document.querySelector('input[name="fecha_hasta"]');
-            
-            // Función para aplicar filtros automáticamente
-            function applyFilters() {
-                const form = document.querySelector('.filters-section');
-                if (form) {
-                    form.submit();
-                }
-            }
-            
-            // Event listeners para filtros automáticos
-            if (searchInput) {
-                let searchTimeout;
-                searchInput.addEventListener('input', function() {
-                    clearTimeout(searchTimeout);
-                    searchTimeout = setTimeout(applyFilters, 500); // Esperar 500ms después de que el usuario deje de escribir
-                });
-            }
-            
-            if (filterSelect) {
-                filterSelect.addEventListener('change', applyFilters);
-            }
-            
-            if (dateDesde) {
-                dateDesde.addEventListener('change', applyFilters);
-            }
-            
-            if (dateHasta) {
-                dateHasta.addEventListener('change', applyFilters);
-            }
+            initAdjustmentFilters();
         });
-
-        // Función para descargar PDF de ajustes
-        function descargarPDFAjustes() {
-            // Abrir el PDF directamente en una nueva pestaña
-            window.open('../../src/inventario/generar-pdf-ajustes.php', '_blank');
-        }
     </script>
 </body>
 </html> 

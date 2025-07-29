@@ -346,17 +346,6 @@
             initDarkMode();
             initMobileMenu();
         });
-
-        // Función para ver detalles del movimiento
-        function verMovimiento(id) {
-            window.location.href = `ver-movimiento.php?id=${id}`;
-        }
-
-        // Función para descargar PDF de movimientos
-        function descargarPDFMovimientos() {
-            // Abrir el PDF directamente en una nueva pestaña
-            window.open('../../src/inventario/generar-pdf-movimientos.php', '_blank');
-        }
     </script>
 </body>
 </html> 

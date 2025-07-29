@@ -363,22 +363,6 @@
                         <div class="metric-details">₡<?php echo number_format($stats_ajustes['valor_total_ajustes']); ?> • <?php echo $stats_ajustes['ajustes_negativos']; ?> negativos</div>
                     </div>
 
-                    <div class="metric-card-dashboard">
-                        <div class="metric-header-dashboard">
-                            <div class="metric-icon-dashboard" style="background: #e83e8c;">
-                                <i class="fas fa-shopping-bag"></i>
-                            </div>
-                            <div class="metric-title-dashboard">Ventas</div>
-                        </div>
-                        <div class="metric-value-dashboard"><?php echo number_format($stats_movimientos['salidas']); ?></div>
-                        <div class="metric-indicator-dashboard positive">
-                            <i class="fas fa-arrow-up"></i>
-                            Productos vendidos
-                        </div>
-                        <div class="metric-details">₡<?php echo number_format($stats_movimientos['valor_total']); ?> • <?php echo $stats_movimientos['total_movimientos']; ?> transacciones</div>
-                    </div>
-
-
                 </div>
 
                 <!-- Dashboard Content -->
