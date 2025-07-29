@@ -22,57 +22,87 @@
     
     // Obtener estadísticas mejoradas de categorías
     try {
-        $stmt_stats = $conn->prepare("
+        // Obtener estadísticas de categorías desde la tabla t_categorias
+        $stmt_categorias = $conn->prepare("
             SELECT 
-                COUNT(DISTINCT categoria) as total_categorias,
-                COUNT(DISTINCT CASE WHEN categoria IS NOT NULL AND categoria != '' THEN categoria END) as categorias_activas,
+                COUNT(*) as total_categorias,
+                COUNT(CASE WHEN estado = 'activo' THEN 1 END) as categorias_activas
+            FROM t_categorias 
+            WHERE ID_EMPRESA = ?
+        ");
+        $stmt_categorias->bind_param("i", $id_empresa);
+        $stmt_categorias->execute();
+        $stats_categorias = $stmt_categorias->get_result()->fetch_assoc();
+        
+        // Obtener estadísticas de productos
+        $stmt_productos = $conn->prepare("
+            SELECT 
                 COUNT(*) as total_productos,
                 SUM(stock) as stock_total,
                 SUM(stock * precio) as valor_total,
-                AVG(productos_por_categoria.cantidad) as promedio_productos
-            FROM t_productos p
-            LEFT JOIN (
-                SELECT categoria, COUNT(*) as cantidad 
-                FROM t_productos 
-                WHERE ID_EMPRESA = ? AND categoria IS NOT NULL AND categoria != ''
-                GROUP BY categoria
-            ) productos_por_categoria ON p.categoria = productos_por_categoria.categoria
-            WHERE p.ID_EMPRESA = ?
-        ");
-        $stmt_stats->bind_param("ii", $id_empresa, $id_empresa);
-        $stmt_stats->execute();
-        $stats = $stmt_stats->get_result()->fetch_assoc();
-        
-        // Obtener categorías con más productos
-        $stmt_top_categorias = $conn->prepare("
-            SELECT 
-                categoria,
-                COUNT(*) as cantidad_productos,
-                SUM(stock) as stock_total,
-                SUM(stock * precio) as valor_total
+                COUNT(DISTINCT categoria) as categorias_con_productos
             FROM t_productos 
             WHERE ID_EMPRESA = ? AND categoria IS NOT NULL AND categoria != ''
-            GROUP BY categoria
-            ORDER BY COUNT(*) DESC
+        ");
+        $stmt_productos->bind_param("i", $id_empresa);
+        $stmt_productos->execute();
+        $stats_productos = $stmt_productos->get_result()->fetch_assoc();
+        
+        // Calcular promedio de productos por categoría
+        $promedio_productos = $stats_categorias['total_categorias'] > 0 ? 
+            round($stats_productos['total_productos'] / $stats_categorias['total_categorias']) : 0;
+        
+        // Combinar estadísticas
+        $stats = [
+            'total_categorias' => $stats_categorias['total_categorias'],
+            'categorias_activas' => $stats_categorias['categorias_activas'],
+            'total_productos' => $stats_productos['total_productos'],
+            'stock_total' => $stats_productos['stock_total'] ?? 0,
+            'valor_total' => $stats_productos['valor_total'] ?? 0,
+            'promedio_productos' => $promedio_productos,
+            'categorias_con_productos' => $stats_productos['categorias_con_productos']
+        ];
+        
+
+        
+        // Obtener categorías con más productos para top categorías
+        $stmt_top_categorias = $conn->prepare("
+            SELECT 
+                c.nombre_categoria as categoria,
+                c.color,
+                c.estado,
+                COUNT(p.ID_PRODUCTO) as cantidad_productos,
+                SUM(p.stock) as stock_total,
+                SUM(p.stock * p.precio) as valor_total,
+                c.fecha_creacion
+            FROM t_categorias c
+            LEFT JOIN t_productos p ON c.nombre_categoria COLLATE utf8mb4_unicode_ci = p.categoria COLLATE utf8mb4_unicode_ci 
+                AND c.ID_EMPRESA = p.ID_EMPRESA
+            WHERE c.ID_EMPRESA = ?
+            GROUP BY c.ID_CATEGORIA, c.nombre_categoria, c.color, c.estado, c.fecha_creacion
+            ORDER BY cantidad_productos DESC, c.fecha_creacion DESC
             LIMIT 5
         ");
         $stmt_top_categorias->bind_param("i", $id_empresa);
         $stmt_top_categorias->execute();
         $top_categorias = $stmt_top_categorias->get_result();
         
-        // Obtener ventas por categoría
+        // Obtener ventas por categoría (últimos 30 días)
         $stmt_ventas_categoria = $conn->prepare("
             SELECT 
                 p.categoria,
                 COUNT(m.ID_MOVIMIENTO) as total_movimientos,
                 SUM(CASE WHEN m.tipo_movimiento = 'salida' THEN m.cantidad ELSE 0 END) as unidades_vendidas,
-                SUM(CASE WHEN m.tipo_movimiento = 'salida' THEN m.valor_movimiento ELSE 0 END) as valor_ventas
+                SUM(CASE WHEN m.tipo_movimiento = 'salida' THEN m.valor_movimiento ELSE 0 END) as valor_ventas,
+                COUNT(DISTINCT p.ID_PRODUCTO) as productos_vendidos
             FROM t_movimientos_inventario m
             JOIN t_productos p ON m.ID_PRODUCTO = p.ID_PRODUCTO
             WHERE m.ID_EMPRESA = ? 
             AND m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            AND m.tipo_movimiento = 'salida'
             AND p.categoria IS NOT NULL AND p.categoria != ''
             GROUP BY p.categoria
+            HAVING unidades_vendidas > 0
             ORDER BY valor_ventas DESC
         ");
         $stmt_ventas_categoria->bind_param("i", $id_empresa);
@@ -88,6 +118,73 @@
                 $total_unidades_vendidas += $row['unidades_vendidas'];
             }
         }
+        
+        // Obtener estadísticas de crecimiento (comparar con mes anterior)
+        $stmt_crecimiento = $conn->prepare("
+            SELECT 
+                SUM(CASE 
+                    WHEN m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+                    AND m.tipo_movimiento = 'salida'
+                    THEN m.valor_movimiento 
+                    ELSE 0 
+                END) as ventas_mes_actual,
+                SUM(CASE 
+                    WHEN m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 60 DAY) 
+                    AND m.fecha_movimiento < DATE_SUB(NOW(), INTERVAL 30 DAY)
+                    AND m.tipo_movimiento = 'salida'
+                    THEN m.valor_movimiento 
+                    ELSE 0 
+                END) as ventas_mes_anterior,
+                COUNT(CASE 
+                    WHEN m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+                    AND m.tipo_movimiento = 'salida'
+                    THEN 1 
+                    ELSE NULL 
+                END) as movimientos_mes_actual,
+                COUNT(CASE 
+                    WHEN m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 60 DAY) 
+                    AND m.fecha_movimiento < DATE_SUB(NOW(), INTERVAL 30 DAY)
+                    AND m.tipo_movimiento = 'salida'
+                    THEN 1 
+                    ELSE NULL 
+                END) as movimientos_mes_anterior
+            FROM t_movimientos_inventario m
+            WHERE m.ID_EMPRESA = ? 
+            AND m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+        ");
+        $stmt_crecimiento->bind_param("i", $id_empresa);
+        $stmt_crecimiento->execute();
+        $crecimiento_data = $stmt_crecimiento->get_result()->fetch_assoc();
+        
+        // Calcular porcentaje de crecimiento
+        $ventas_mes_actual = $crecimiento_data['ventas_mes_actual'] ?? 0;
+        $ventas_mes_anterior = $crecimiento_data['ventas_mes_anterior'] ?? 0;
+        $movimientos_mes_actual = $crecimiento_data['movimientos_mes_actual'] ?? 0;
+        $movimientos_mes_anterior = $crecimiento_data['movimientos_mes_anterior'] ?? 0;
+        
+        // Calcular crecimiento basado en ventas
+        if ($ventas_mes_anterior > 0) {
+            $porcentaje_crecimiento_ventas = round((($ventas_mes_actual - $ventas_mes_anterior) / $ventas_mes_anterior) * 100, 1);
+        } else {
+            $porcentaje_crecimiento_ventas = $ventas_mes_actual > 0 ? 100 : 0;
+        }
+        
+        // Calcular crecimiento basado en número de movimientos
+        if ($movimientos_mes_anterior > 0) {
+            $porcentaje_crecimiento_movimientos = round((($movimientos_mes_actual - $movimientos_mes_anterior) / $movimientos_mes_anterior) * 100, 1);
+        } else {
+            $porcentaje_crecimiento_movimientos = $movimientos_mes_actual > 0 ? 100 : 0;
+        }
+        
+        // Usar el promedio de ambos crecimientos para un cálculo más equilibrado
+        $porcentaje_crecimiento = round(($porcentaje_crecimiento_ventas + $porcentaje_crecimiento_movimientos) / 2, 1);
+        
+        // Obtener estadísticas adicionales para mostrar en las cards
+        $stats['ventas_mes_actual'] = $ventas_mes_actual;
+        $stats['ventas_mes_anterior'] = $ventas_mes_anterior;
+        $stats['movimientos_mes_actual'] = $movimientos_mes_actual;
+        $stats['movimientos_mes_anterior'] = $movimientos_mes_anterior;
+        $stats['porcentaje_crecimiento'] = $porcentaje_crecimiento;
         
     } catch (Exception $e) {
         $stats = [
@@ -163,16 +260,7 @@
                         <div class="metric-indicator"><?php echo number_format($stats['total_productos']); ?> productos</div>
                     </div>
 
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <div class="metric-icon" style="background: #e83e8c;">
-                                <i class="fas fa-check-square"></i>
-                            </div>
-                        </div>
-                        <div class="metric-value"><?php echo number_format($stats['categorias_activas']); ?></div>
-                        <div class="metric-details">Categorías Activas</div>
-                        <div class="metric-indicator"><?php echo $porcentaje_activas; ?>% del total</div>
-                    </div>
+
 
                     <div class="metric-card">
                         <div class="metric-header">
@@ -229,6 +317,16 @@
                         <div class="metric-indicator">₡<?php echo number_format($total_ventas); ?> en ventas</div>
                     </div>
 
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon" style="background: <?php echo $porcentaje_crecimiento >= 0 ? '#28a745' : '#dc3545'; ?>;">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="metric-value"><?php echo $porcentaje_crecimiento >= 0 ? '+' : ''; ?><?php echo $porcentaje_crecimiento; ?>%</div>
+                        <div class="metric-details">Crecimiento Mensual</div>
+                        <div class="metric-indicator">vs mes anterior</div>
+                    </div>
 
                 </div>
 
@@ -253,7 +351,13 @@
                             <?php
                                 $porcentaje_ventas = $total_ventas > 0 ? 
                                     ($categoria_venta['valor_ventas'] / $total_ventas) * 100 : 0;
-                                $color_categoria = '#6f42c1'; // Color por defecto
+                                
+                                // Obtener el color real de la categoría
+                                $stmt_color = $conn->prepare("SELECT color FROM t_categorias WHERE nombre_categoria = ? AND ID_EMPRESA = ?");
+                                $stmt_color->bind_param("si", $categoria_venta['categoria'], $id_empresa);
+                                $stmt_color->execute();
+                                $color_result = $stmt_color->get_result()->fetch_assoc();
+                                $color_categoria = $color_result['color'] ?: '#6f42c1'; // Color por defecto
                             ?>
                             <div class="category-sales-item">
                                 <div class="category-sales-header">
@@ -293,100 +397,128 @@
 
                 <!-- Charts Section -->
                 <div class="charts-section">
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3 class="chart-title">Distribución de Productos</h3>
-                            <div class="time-filters">
-                                <button class="time-filter active">Semana</button>
-                                <button class="time-filter">Mes</button>
-                                <button class="time-filter">Año</button>
-                            </div>
-                        </div>
-                        
-                        <div class="chart-metrics">
-                            <div class="chart-metric">
-                                <div class="chart-metric-value"><?php echo number_format($stats['total_productos']); ?></div>
-                                <div class="chart-metric-label">Total Productos</div>
-                            </div>
-                            <div class="chart-metric">
-                                <div class="chart-metric-value"><?php echo $promedio_productos; ?></div>
-                                <div class="chart-metric-label">Promedio</div>
-                            </div>
-                            <div class="chart-metric growth">
-                                <div class="chart-metric-value">+12.5%</div>
-                                <div class="chart-metric-label">Crecimiento</div>
-                            </div>
-                        </div>
-                        
-                        <div style="height: 200px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">
-                            Gráfico de Distribución de Productos por Categoría
-                        </div>
-                    </div>
-
                     <div class="top-products">
                         <div class="top-products-header">
-                            <h3 class="chart-title">Top Categorías</h3>
+                            <h3 class="chart-title">
+                                Categorías por Valor
+                                <i class="fas fa-info-circle tooltip-icon" data-tooltip="Ordenadas por cantidad de productos (más productos primero) y fecha de creación (más recientes primero). Muestra las 5 categorías principales."></i>
+                            </h3>
                             <button class="btn-icon">
                                 <i class="fas fa-download"></i>
                             </button>
                         </div>
                         
+                        <?php 
+                        if ($top_categorias && $top_categorias->num_rows > 0): 
+                            $rank = 1;
+                            while ($categoria = $top_categorias->fetch_assoc()): 
+                                // Obtener ventas de esta categoría en los últimos 30 días
+                                $stmt_ventas_cat = $conn->prepare("
+                                    SELECT 
+                                        SUM(CASE WHEN m.tipo_movimiento = 'salida' THEN m.cantidad ELSE 0 END) as unidades_vendidas,
+                                        SUM(CASE WHEN m.tipo_movimiento = 'salida' THEN m.valor_movimiento ELSE 0 END) as valor_ventas
+                                    FROM t_movimientos_inventario m
+                                    JOIN t_productos p ON m.ID_PRODUCTO = p.ID_PRODUCTO
+                                    WHERE m.ID_EMPRESA = ? 
+                                    AND p.categoria = ?
+                                    AND m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                                ");
+                                $stmt_ventas_cat->bind_param("is", $id_empresa, $categoria['categoria']);
+                                $stmt_ventas_cat->execute();
+                                $ventas_cat = $stmt_ventas_cat->get_result()->fetch_assoc();
+                                
+                                $unidades_vendidas = $ventas_cat['unidades_vendidas'] ?? 0;
+                                $valor_ventas = $ventas_cat['valor_ventas'] ?? 0;
+                                
+                                // Calcular crecimiento real por categoría
+                                $stmt_crecimiento_cat = $conn->prepare("
+                                    SELECT 
+                                        SUM(CASE 
+                                            WHEN m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+                                            THEN m.valor_movimiento 
+                                            ELSE 0 
+                                        END) as ventas_mes_actual,
+                                        SUM(CASE 
+                                            WHEN m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 60 DAY) 
+                                            AND m.fecha_movimiento < DATE_SUB(NOW(), INTERVAL 30 DAY)
+                                            THEN m.valor_movimiento 
+                                            ELSE 0 
+                                        END) as ventas_mes_anterior
+                                    FROM t_movimientos_inventario m
+                                    JOIN t_productos p ON m.ID_PRODUCTO = p.ID_PRODUCTO
+                                    WHERE m.ID_EMPRESA = ? 
+                                    AND p.categoria = ?
+                                    AND m.tipo_movimiento = 'salida'
+                                    AND m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 60 DAY)
+                                ");
+                                $stmt_crecimiento_cat->bind_param("is", $id_empresa, $categoria['categoria']);
+                                $stmt_crecimiento_cat->execute();
+                                $crecimiento_cat = $stmt_crecimiento_cat->get_result()->fetch_assoc();
+                                
+                                $ventas_mes_actual_cat = $crecimiento_cat['ventas_mes_actual'] ?? 0;
+                                $ventas_mes_anterior_cat = $crecimiento_cat['ventas_mes_anterior'] ?? 0;
+                                
+                                if ($ventas_mes_anterior_cat > 0) {
+                                    $crecimiento = round((($ventas_mes_actual_cat - $ventas_mes_anterior_cat) / $ventas_mes_anterior_cat) * 100, 1);
+                                } else {
+                                    $crecimiento = $ventas_mes_actual_cat > 0 ? 100 : 0;
+                                }
+                                
+                                // Color de la categoría (usar color real o color por defecto)
+                                $color_categoria = $categoria['color'] ?: '#6f42c1';
+                                
+                                // Icono según el nombre de la categoría
+                                $iconos = [
+                                    'electrónicos' => 'fas fa-laptop',
+                                    'ropa' => 'fas fa-tshirt',
+                                    'hogar' => 'fas fa-home',
+                                    'alimentos' => 'fas fa-utensils',
+                                    'bebidas' => 'fas fa-wine-bottle',
+                                    'limpieza' => 'fas fa-broom',
+                                    'papelería' => 'fas fa-pencil-alt',
+                                    'deportes' => 'fas fa-futbol',
+                                    'juguetes' => 'fas fa-gamepad',
+                                    'libros' => 'fas fa-book'
+                                ];
+                                
+                                $icono_categoria = 'fas fa-tags'; // Icono por defecto
+                                foreach ($iconos as $palabra => $icono) {
+                                    if (stripos($categoria['categoria'], $palabra) !== false) {
+                                        $icono_categoria = $icono;
+                                        break;
+                                    }
+                                }
+                        ?>
                         <div class="product-item">
-                            <div class="product-rank">1</div>
-                            <div class="product-icon" style="background: #6f42c1;">
-                                <i class="fas fa-laptop"></i>
+                            <div class="product-rank"><?php echo $rank; ?></div>
+                            <div class="product-icon" style="background: <?php echo $color_categoria; ?>;">
+                                <i class="<?php echo $icono_categoria; ?>"></i>
                             </div>
                             <div class="product-info">
-                                <div class="product-name">Electrónicos</div>
-                                <div class="product-category">45 productos</div>
+                                <div class="product-name"><?php echo htmlspecialchars($categoria['categoria']); ?></div>
+                                <div class="product-category"><?php echo $categoria['cantidad_productos']; ?> productos</div>
                             </div>
                             <div class="product-stats">
-                                <div class="product-sales">156</div>
-                                <div class="product-revenue">₡3.2M</div>
+                                <div class="product-sales">₡<?php echo number_format($categoria['valor_total']); ?></div>
+                                <div class="product-revenue">₡<?php echo number_format($categoria['valor_total'] / max($categoria['cantidad_productos'], 1)); ?></div>
                                 <div class="product-growth">
-                                    <i class="fas fa-arrow-up"></i>
-                                    +18%
+                                    <i class="fas fa-box"></i>
+                                    <?php echo number_format($categoria['stock_total']); ?>
                                 </div>
                             </div>
                         </div>
-                        
+                        <?php 
+                                $rank++;
+                            endwhile; 
+                        else: 
+                        ?>
                         <div class="product-item">
-                            <div class="product-rank">2</div>
-                            <div class="product-icon" style="background: #28a745;">
-                                <i class="fas fa-tshirt"></i>
-                            </div>
-                            <div class="product-info">
-                                <div class="product-name">Ropa</div>
-                                <div class="product-category">38 productos</div>
-                            </div>
-                            <div class="product-stats">
-                                <div class="product-sales">89</div>
-                                <div class="product-revenue">₡1.8M</div>
-                                <div class="product-growth">
-                                    <i class="fas fa-arrow-up"></i>
-                                    +12%
-                                </div>
+                            <div class="product-info" style="text-align: center; width: 100%;">
+                                <div class="product-name">No hay categorías con productos</div>
+                                <div class="product-category">Los datos aparecerán cuando agregues productos a las categorías</div>
                             </div>
                         </div>
-                        
-                        <div class="product-item">
-                            <div class="product-rank">3</div>
-                            <div class="product-icon" style="background: #007bff;">
-                                <i class="fas fa-home"></i>
-                            </div>
-                            <div class="product-info">
-                                <div class="product-name">Hogar</div>
-                                <div class="product-category">32 productos</div>
-                            </div>
-                            <div class="product-stats">
-                                <div class="product-sales">67</div>
-                                <div class="product-revenue">₡1.2M</div>
-                                <div class="product-growth">
-                                    <i class="fas fa-arrow-up"></i>
-                                    +8%
-                                </div>
-                            </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -394,9 +526,14 @@
                 <div class="products-section">
                     <div class="products-header">
                         <h2 class="section-title">Lista de Categorías</h2>
-                        <button class="btn-primary" onclick="window.location.href='agregar-categoria.php'">
-                            <i class="fas fa-plus"></i> Nueva Categoría
-                        </button>
+                        <div class="header-buttons">
+                            <button class="btn-secondary" onclick="descargarPDFCategorias()" title="Descargar PDF de Categorías">
+                                <i class="fas fa-download"></i> Descargar PDF
+                            </button>
+                            <button class="btn-primary" onclick="window.location.href='agregar-categoria.php'">
+                                <i class="fas fa-plus"></i> Nueva Categoría
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Mensajes de éxito/error -->
@@ -765,6 +902,12 @@
                     text: message || 'Ha ocurrido un error'
                 });
             }
+        }
+
+        // Función para descargar PDF de categorías
+        function descargarPDFCategorias() {
+            // Abrir el PDF directamente en una nueva pestaña
+            window.open('../../src/inventario/generar-pdf-categorias.php', '_blank');
         }
     </script>
 </body>

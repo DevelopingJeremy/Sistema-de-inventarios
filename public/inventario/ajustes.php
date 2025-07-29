@@ -216,6 +216,11 @@
                 <div class="products-section">
                     <div class="products-header">
                         <h2 class="section-title">Lista de Ajustes</h2>
+                        <div class="header-buttons">
+                            <button class="btn-secondary" onclick="descargarPDFAjustes()" title="Descargar PDF de Ajustes">
+                                <i class="fas fa-download"></i> Descargar PDF
+                            </button>
+                        </div>
                     </div>
 
                     <div class="table-container">
@@ -322,6 +327,12 @@
                 dateHasta.addEventListener('change', applyFilters);
             }
         });
+
+        // Función para descargar PDF de ajustes
+        function descargarPDFAjustes() {
+            // Abrir el PDF directamente en una nueva pestaña
+            window.open('../../src/inventario/generar-pdf-ajustes.php', '_blank');
+        }
     </script>
 </body>
 </html> 

@@ -484,9 +484,14 @@
                 <div class="products-section">
                     <div class="products-header">
                         <h2 class="section-title">Lista de Productos</h2>
-                        <button class="btn-primary" onclick="window.location.href='agregar-producto.php'">
-                            <i class="fas fa-plus"></i> Agregar Producto
-                        </button>
+                        <div class="header-buttons">
+                            <button class="btn-secondary" onclick="descargarPDFProductos()" title="Descargar PDF de Productos">
+                                <i class="fas fa-download"></i> Descargar PDF
+                            </button>
+                            <button class="btn-primary" onclick="window.location.href='agregar-producto.php'">
+                                <i class="fas fa-plus"></i> Agregar Producto
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Mensajes de éxito/error -->
@@ -1037,6 +1042,11 @@
             }
         }
 
+        // Función para descargar PDF de productos
+        function descargarPDFProductos() {
+            // Abrir el PDF directamente en una nueva pestaña
+            window.open('../../src/inventario/generar-pdf-productos.php', '_blank');
+        }
 
     </script>
 </body>

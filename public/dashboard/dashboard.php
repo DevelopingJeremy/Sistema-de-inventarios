@@ -568,7 +568,7 @@
                             <button class="performance-filter active" data-period="7">Semana</button>
                             <button class="performance-filter" data-period="30">Mes</button>
                             <button class="performance-filter" data-period="90">Trimestre</button>
-                            <button class="btn-icon">
+                            <button class="btn-icon" onclick="descargarPDF()" title="Descargar PDF del Dashboard">
                                 <i class="fas fa-download"></i>
                             </button>
                         </div>
@@ -764,6 +764,12 @@
                     console.log('Período seleccionado:', period);
                 });
             });
+        }
+        
+        // Función para descargar PDF del dashboard
+        function descargarPDF() {
+            // Abrir el PDF directamente en una nueva pestaña
+            window.open('../../src/dashboard/generar-pdf-dashboard.php', '_blank');
         }
         
         <?php if($exito): ?>

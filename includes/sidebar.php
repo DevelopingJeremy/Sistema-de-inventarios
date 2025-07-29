@@ -1,5 +1,5 @@
 
-<div class="sidebar">
+<div class="sidebar" style="z-index: 99999;">
     <div class="sidebar-header">
         <div class="logo">
             <i class="fas fa-users"></i>

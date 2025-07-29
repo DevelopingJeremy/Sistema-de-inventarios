@@ -258,6 +258,11 @@
                 <div class="products-section">
                     <div class="products-header">
                         <h2 class="section-title">Lista de Movimientos</h2>
+                        <div class="header-buttons">
+                            <button class="btn-secondary" onclick="descargarPDFMovimientos()" title="Descargar PDF de Movimientos">
+                                <i class="fas fa-download"></i> Descargar PDF
+                            </button>
+                        </div>
                     </div>
 
                     <div class="table-container">
@@ -295,7 +300,7 @@
                                                     <?php echo $tipo_texto; ?>
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td title="<?php echo htmlspecialchars($movimiento['nombre_producto'] ?? 'Producto eliminado'); ?>">
                                                 <div style="display: flex; align-items: center; gap: 12px;">
                                                     <div style="width: 40px; height: 40px; border-radius: 6px; background: #6f42c1; display: flex; align-items: center; justify-content: center;">
                                                         <i class="fas fa-box" style="font-size: 16px; color: white;"></i>
@@ -305,11 +310,11 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td><?php echo htmlspecialchars($movimiento['categoria'] ?? 'Sin categoría'); ?></td>
+                                            <td title="<?php echo htmlspecialchars($movimiento['categoria'] ?? 'Sin categoría'); ?>"><?php echo htmlspecialchars($movimiento['categoria'] ?? 'Sin categoría'); ?></td>
                                             <td><?php echo number_format($movimiento['cantidad']); ?></td>
                                             <td>₡<?php echo number_format(isset($movimiento['precio_unitario']) ? $movimiento['precio_unitario'] : 0, 2); ?></td>
                                             <td>₡<?php echo number_format($movimiento['valor_movimiento']); ?></td>
-                                            <td><?php echo htmlspecialchars(isset($movimiento['referencia']) ? $movimiento['referencia'] : '-'); ?></td>
+                                            <td title="<?php echo htmlspecialchars(isset($movimiento['referencia']) ? $movimiento['referencia'] : '-'); ?>"><?php echo htmlspecialchars(isset($movimiento['referencia']) ? $movimiento['referencia'] : '-'); ?></td>
                                             <td>
                                                 <button class="btn-action btn-view" title="Ver detalles" onclick="verMovimiento(<?php echo $movimiento['ID_MOVIMIENTO']; ?>)">
                                                     <i class="fas fa-eye"></i>
@@ -345,6 +350,12 @@
         // Función para ver detalles del movimiento
         function verMovimiento(id) {
             window.location.href = `ver-movimiento.php?id=${id}`;
+        }
+
+        // Función para descargar PDF de movimientos
+        function descargarPDFMovimientos() {
+            // Abrir el PDF directamente en una nueva pestaña
+            window.open('../../src/inventario/generar-pdf-movimientos.php', '_blank');
         }
     </script>
 </body>
