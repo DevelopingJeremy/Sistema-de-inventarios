@@ -182,9 +182,53 @@
 
     <script src="../assets/js/main.js"></script>
     <script>
+        // Función para mostrar/ocultar campo otra categoría
+        function mostrarCampoOtro() {
+            const categoriaSelect = document.getElementById('categoriaSelect');
+            const campoOtro = document.getElementById('campoOtro');
+            const otraCategoriaInput = document.getElementById('otraCategoriaInput');
+            
+            if (categoriaSelect.value === 'Otro') {
+                campoOtro.style.display = 'block';
+                otraCategoriaInput.required = true;
+            } else {
+                campoOtro.style.display = 'none';
+                otraCategoriaInput.required = false;
+                otraCategoriaInput.value = '';
+            }
+        }
+
+        // Función para mostrar preview del logo
+        function initLogoPreview() {
+            const logoInput = document.getElementById('logoInput');
+            if (logoInput) {
+                logoInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const label = document.querySelector('.file-upload-label');
+                            label.innerHTML = `
+                                <img src="${e.target.result}" style="max-width: 100px; max-height: 100px; border-radius: 8px; margin-bottom: 8px;">
+                                <span>${file.name}</span>
+                            `;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+        }
+
         // Inicializar funcionalidades específicas de empresa
         document.addEventListener('DOMContentLoaded', function() {
-            initCompanyPage();
+            // Verificar si hay un valor pre-seleccionado en la categoría
+            const categoriaSelect = document.getElementById('categoriaSelect');
+            if (categoriaSelect && categoriaSelect.value === 'Otro') {
+                mostrarCampoOtro();
+            }
+            
+            // Inicializar preview del logo
+            initLogoPreview();
         });
     </script>
 </body>

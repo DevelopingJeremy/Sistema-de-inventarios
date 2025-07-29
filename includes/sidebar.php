@@ -31,15 +31,15 @@
                 <i class="fas fa-box"></i>
                 <span>Productos</span>
             </a>
-            <a href="inventario/categorias.php" class="nav-item">
+            <a href="http://localhost/hybox.cloud/public/inventario/categorias.php" class="nav-item">
                 <i class="fas fa-tags"></i>
                 <span>Categorías</span>
             </a>
-            <a href="inventario/movimientos.php" class="nav-item">
-                <i class="fas fa-warehouse"></i>
+            <a href="http://localhost/hybox.cloud/public/inventario/movimientos.php" class="nav-item">
+                <i class="fas fa-exchange-alt"></i>
                 <span>Movimientos</span>
             </a>
-            <a href="inventario/ajustes.php" class="nav-item">
+            <a href="http://localhost/hybox.cloud/public/inventario/ajustes.php" class="nav-item">
                 <i class="fas fa-tools"></i>
                 <span>Ajustes</span>
             </a>

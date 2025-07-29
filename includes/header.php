@@ -37,7 +37,8 @@
             </div>
         </div>
         
-        <button class="btn-primary" onclick="window.location.href='../inventario/agregar-producto.php'">
+        <!-- Botón dinámico que se oculta en móvil -->
+        <button class="btn-primary header-add-button" id="headerAddButton" onclick="window.location.href='../inventario/agregar-producto.php'">
             <i class="fas fa-plus"></i>
             Nuevo Producto
         </button>

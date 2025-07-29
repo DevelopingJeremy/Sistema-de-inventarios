@@ -6,6 +6,192 @@
     // Obtener datos para los filtros
     $id_usuario = $_SESSION['id_usuario'];
     
+    // Obtener el ID de la empresa del usuario
+    $stmt_empresa = $conn->prepare("SELECT ID_EMPRESA FROM t_usuarios WHERE ID_USUARIO = ?");
+    $stmt_empresa->bind_param("i", $id_usuario);
+    $stmt_empresa->execute();
+    $result_empresa = $stmt_empresa->get_result();
+    
+    if ($result_empresa->num_rows > 0) {
+        $empresa_data = $result_empresa->fetch_assoc();
+        $id_empresa = $empresa_data['ID_EMPRESA'];
+    } else {
+        header('Location: ../empresa/registrar-empresa.php');
+        exit();
+    }
+    
+    // Obtener estadísticas dinámicas de productos
+    try {
+        $stmt_stats = $conn->prepare("
+            SELECT 
+                COUNT(*) as total_productos,
+                SUM(CASE WHEN stock > 0 THEN 1 ELSE 0 END) as productos_activos,
+                SUM(CASE WHEN stock <= 5 AND stock > 0 THEN 1 ELSE 0 END) as stock_bajo,
+                SUM(CASE WHEN stock = 0 THEN 1 ELSE 0 END) as sin_stock,
+                SUM(stock * precio) as valor_total,
+                SUM(stock) as stock_total
+            FROM t_productos 
+            WHERE ID_EMPRESA = ?
+        ");
+        $stmt_stats->bind_param("i", $id_empresa);
+        $stmt_stats->execute();
+        $stats_productos = $stmt_stats->get_result()->fetch_assoc();
+        
+        // Obtener ventas del mes (movimientos de salida)
+        $stmt_ventas = $conn->prepare("
+            SELECT SUM(valor_movimiento) as ventas_mes
+            FROM t_movimientos_inventario 
+            WHERE ID_EMPRESA = ? 
+            AND tipo_movimiento = 'salida'
+            AND fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ");
+        $stmt_ventas->bind_param("i", $id_empresa);
+        $stmt_ventas->execute();
+        $ventas_mes = $stmt_ventas->get_result()->fetch_assoc();
+        
+        // Obtener top productos más vendidos
+        $stmt_top_productos = $conn->prepare("
+            SELECT 
+                p.nombre_producto,
+                p.categoria,
+                p.precio,
+                COUNT(m.ID_MOVIMIENTO) as total_movimientos,
+                SUM(CASE WHEN m.tipo_movimiento = 'salida' THEN m.cantidad ELSE 0 END) as unidades_vendidas,
+                SUM(CASE WHEN m.tipo_movimiento = 'salida' THEN m.valor_movimiento ELSE 0 END) as valor_ventas
+            FROM t_productos p
+            LEFT JOIN t_movimientos_inventario m ON p.ID_PRODUCTO = m.ID_PRODUCTO AND m.tipo_movimiento = 'salida'
+            WHERE p.ID_EMPRESA = ? 
+            AND m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            GROUP BY p.ID_PRODUCTO, p.nombre_producto, p.categoria, p.precio
+            ORDER BY unidades_vendidas DESC, valor_ventas DESC
+            LIMIT 5
+        ");
+        $stmt_top_productos->bind_param("i", $id_empresa);
+        $stmt_top_productos->execute();
+        $top_productos = $stmt_top_productos->get_result();
+        
+        // Obtener ventas por categoría
+        $stmt_ventas_categoria = $conn->prepare("
+            SELECT 
+                p.categoria,
+                COUNT(m.ID_MOVIMIENTO) as total_movimientos,
+                SUM(CASE WHEN m.tipo_movimiento = 'salida' THEN m.cantidad ELSE 0 END) as unidades_vendidas,
+                SUM(CASE WHEN m.tipo_movimiento = 'salida' THEN m.valor_movimiento ELSE 0 END) as valor_ventas
+            FROM t_movimientos_inventario m
+            JOIN t_productos p ON m.ID_PRODUCTO = p.ID_PRODUCTO
+            WHERE m.ID_EMPRESA = ? 
+            AND m.fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            AND p.categoria IS NOT NULL AND p.categoria != ''
+            GROUP BY p.categoria
+            ORDER BY valor_ventas DESC
+        ");
+        $stmt_ventas_categoria->bind_param("i", $id_empresa);
+        $stmt_ventas_categoria->execute();
+        $ventas_categoria = $stmt_ventas_categoria->get_result();
+        
+        // Calcular total de ventas
+        $total_ventas = 0;
+        $total_unidades_vendidas = 0;
+        if ($ventas_categoria) {
+            while ($row = $ventas_categoria->fetch_assoc()) {
+                $total_ventas += $row['valor_ventas'];
+                $total_unidades_vendidas += $row['unidades_vendidas'];
+            }
+        }
+        
+        // Obtener datos para la gráfica de distribución de productos por categoría
+        $stmt_distribucion = $conn->prepare("
+            SELECT 
+                p.categoria,
+                COUNT(*) as total_productos,
+                SUM(p.stock) as stock_total,
+                COALESCE(SUM(p.stock * p.precio), 0) as valor_total
+            FROM t_productos p
+            WHERE p.ID_EMPRESA = ? 
+            AND p.categoria IS NOT NULL 
+            AND p.categoria != ''
+            AND p.categoria != 'NULL'
+            GROUP BY p.categoria
+            ORDER BY total_productos DESC
+        ");
+        $stmt_distribucion->bind_param("i", $id_empresa);
+        $stmt_distribucion->execute();
+        $distribucion_categorias = $stmt_distribucion->get_result();
+        
+        // Consulta para la gráfica de distribución
+        $stmt_simple = $conn->prepare("
+            SELECT 
+                p.categoria,
+                COUNT(*) as total_productos
+            FROM t_productos p
+            WHERE p.ID_EMPRESA = ? 
+            GROUP BY p.categoria
+            ORDER BY total_productos DESC
+        ");
+        $stmt_simple->bind_param("i", $id_empresa);
+        $stmt_simple->execute();
+        $simple_result = $stmt_simple->get_result();
+        
+
+        
+
+        
+        // Obtener top categorías por valor total
+        $stmt_top_categorias = $conn->prepare("
+            SELECT 
+                p.categoria,
+                COUNT(p.ID_PRODUCTO) as total_productos,
+                SUM(p.stock) as stock_total,
+                COALESCE(SUM(p.stock * p.precio), 0) as valor_total
+            FROM t_productos p
+            WHERE p.ID_EMPRESA = ? 
+            AND p.categoria IS NOT NULL AND p.categoria != ''
+            GROUP BY p.categoria
+            ORDER BY valor_total DESC
+            LIMIT 5
+        ");
+        $stmt_top_categorias->bind_param("i", $id_empresa);
+        $stmt_top_categorias->execute();
+        $top_categorias = $stmt_top_categorias->get_result();
+        
+    } catch (Exception $e) {
+        $stats_productos = [
+            'total_productos' => 0,
+            'productos_activos' => 0,
+            'stock_bajo' => 0,
+            'sin_stock' => 0,
+            'valor_total' => 0,
+            'stock_total' => 0
+        ];
+        $ventas_mes = ['ventas_mes' => 0];
+        $top_productos = null;
+        $ventas_categoria = null;
+        $total_ventas = 0;
+        $total_unidades_vendidas = 0;
+        $distribucion_categorias = null;
+        $top_categorias = null;
+    }
+    
+    // Inicializar variables por defecto en caso de que no estén definidas
+    if (!isset($top_productos)) {
+        $top_productos = null;
+    }
+    if (!isset($ventas_categoria)) {
+        $ventas_categoria = null;
+    }
+    if (!isset($total_ventas)) {
+        $total_ventas = 0;
+    }
+    if (!isset($total_unidades_vendidas)) {
+        $total_unidades_vendidas = 0;
+    }
+    if (!isset($distribucion_categorias)) {
+        $distribucion_categorias = null;
+    }
+    if (!isset($top_categorias)) {
+        $top_categorias = null;
+    }
+    
     // Obtener categorías de la empresa
     $stmt_categorias = $conn->prepare("
         SELECT DISTINCT p.categoria 
@@ -51,10 +237,11 @@
                             <div class="metric-icon" style="background: #6f42c1;">
                                 <i class="fas fa-mouse"></i>
                             </div>
+                            <div class="metric-title">Productos</div>
                         </div>
-                        <div class="metric-value">1,250</div>
+                        <div class="metric-value"><?php echo number_format($stats_productos['total_productos']); ?></div>
                         <div class="metric-details">Total Productos</div>
-                        <div class="metric-indicator">+45 este mes</div>
+                        <div class="metric-indicator"><?php echo number_format($stats_productos['stock_total']); ?> unidades</div>
                     </div>
 
                     <div class="metric-card">
@@ -62,10 +249,11 @@
                             <div class="metric-icon" style="background: #e83e8c;">
                                 <i class="fas fa-check-circle"></i>
                             </div>
+                            <div class="metric-title">Activos</div>
                         </div>
-                        <div class="metric-value">1,180</div>
+                        <div class="metric-value"><?php echo number_format($stats_productos['productos_activos']); ?></div>
                         <div class="metric-details">Productos Activos</div>
-                        <div class="metric-indicator">94% del total</div>
+                        <div class="metric-indicator"><?php echo $stats_productos['total_productos'] > 0 ? round(($stats_productos['productos_activos'] / $stats_productos['total_productos']) * 100) : 0; ?>% del total</div>
                     </div>
 
                     <div class="metric-card">
@@ -73,10 +261,11 @@
                             <div class="metric-icon" style="background: #007bff;">
                                 <i class="fas fa-exclamation-triangle"></i>
                             </div>
+                            <div class="metric-title">Alertas</div>
                         </div>
-                        <div class="metric-value">15</div>
-                        <div class="metric-details">Stock Bajo</div>
-                        <div class="metric-indicator">Requieren atención</div>
+                        <div class="metric-value"><?php echo number_format($stats_productos['stock_bajo']); ?></div>
+                        <div class="metric-details">Stock Bajo (≤5)</div>
+                        <div class="metric-indicator"><?php echo number_format($stats_productos['sin_stock']); ?> sin stock</div>
                     </div>
 
                     <div class="metric-card">
@@ -84,10 +273,11 @@
                             <div class="metric-icon" style="background: #28a745;">
                                 <i class="fas fa-dollar-sign"></i>
                             </div>
+                            <div class="metric-title">Valor</div>
                         </div>
-                        <div class="metric-value">₡15.2M</div>
+                        <div class="metric-value">₡<?php echo number_format($stats_productos['valor_total'], 0, ',', '.'); ?></div>
                         <div class="metric-details">Valor Total</div>
-                        <div class="metric-indicator">+8.5% vs mes anterior</div>
+                        <div class="metric-indicator">Stock × Precio</div>
                     </div>
 
                     <div class="metric-card">
@@ -95,51 +285,132 @@
                             <div class="metric-icon" style="background: #007bff;">
                                 <i class="fas fa-chart-line"></i>
                             </div>
+                            <div class="metric-title">Movimientos</div>
                         </div>
-                        <div class="metric-value">₡2.8M</div>
-                        <div class="metric-details">Ventas del Mes</div>
-                        <div class="metric-indicator">↑+12.5% +₡320K vs mes anterior</div>
+                        <div class="metric-value">₡<?php echo number_format($ventas_mes['ventas_mes'], 0, ',', '.'); ?></div>
+                        <div class="metric-details">Movimientos Salida</div>
+                        <div class="metric-indicator">Últimos 30 días</div>
                     </div>
 
                     <div class="metric-card">
                         <div class="metric-header">
-                            <div class="metric-icon" style="background: #6f42c1;">
-                                <i class="fas fa-shopping-cart"></i>
+                            <div class="metric-icon" style="background: #e83e8c;">
+                                <i class="fas fa-shopping-bag"></i>
                             </div>
+                            <div class="metric-title">Ventas</div>
                         </div>
-                        <div class="metric-value">156</div>
+                        <div class="metric-value"><?php echo number_format($total_unidades_vendidas); ?></div>
                         <div class="metric-details">Productos Vendidos</div>
-                        <div class="metric-indicator">↑+8.2% +12 vs mes anterior</div>
+                        <div class="metric-indicator">₡<?php echo number_format($total_ventas); ?> en ventas</div>
+                    </div>
+                </div>
+
+                <!-- Top Products Section -->
+                <div class="top-products-section">
+                    <div class="section-header">
+                        <div>
+                            <h3 class="section-title">Top Productos Más Vendidos</h3>
+                            <p class="section-subtitle">Productos con mejor rendimiento (últimos 30 días)</p>
+                        </div>
                     </div>
 
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <div class="metric-icon" style="background: #6f42c1;">
-                                <i class="fas fa-star"></i>
+                    <?php if ($top_productos && $top_productos->num_rows > 0): ?>
+                        <?php $rank = 1; ?>
+                        <?php while ($producto = $top_productos->fetch_assoc()): ?>
+                            <div class="product-item-dashboard">
+                                <div class="product-rank-dashboard"><?php echo $rank; ?></div>
+                                <div class="product-icon-dashboard" style="background: #<?php echo $rank % 2 == 0 ? '6f42c1' : '3b82f6'; ?>;">
+                                    <i class="fas fa-box"></i>
+                                </div>
+                                <div class="product-info-dashboard">
+                                    <div class="product-name-dashboard"><?php echo htmlspecialchars($producto['nombre_producto']); ?></div>
+                                    <div class="product-category-dashboard"><?php echo htmlspecialchars($producto['categoria'] ?? 'Sin categoría'); ?></div>
+                                </div>
+                                <div class="product-stats-dashboard">
+                                    <div class="product-sales-dashboard"><?php echo number_format($producto['unidades_vendidas']); ?> unidades</div>
+                                    <div class="product-revenue-dashboard">₡<?php echo number_format($producto['valor_ventas']); ?></div>
+                                    <div class="product-growth-dashboard positive">
+                                        <i class="fas fa-arrow-up"></i>
+                                        <?php echo $producto['total_movimientos']; ?> movimientos
+                                    </div>
+                                </div>
+                            </div>
+                            <?php $rank++; ?>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <div class="product-item-dashboard">
+                            <div class="product-info-dashboard" style="text-align: center; width: 100%;">
+                                <div class="product-name-dashboard">No hay datos de productos vendidos</div>
+                                <div class="product-category-dashboard">Los productos aparecerán cuando haya movimientos de salida</div>
                             </div>
                         </div>
-                        <div class="metric-value">4.8</div>
-                        <div class="metric-details">Calificación Promedio</div>
-                        <div class="metric-indicator">↑+5.1% +0.2 vs mes anterior</div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Sales by Category Section -->
+                <div class="sales-by-category-section">
+                    <div class="section-header">
+                        <div>
+                            <h3 class="section-title">Ventas por Categoría</h3>
+                            <p class="section-subtitle">Rendimiento de ventas por categoría (últimos 30 días)</p>
+                        </div>
                     </div>
 
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <div class="metric-icon" style="background: #6f42c1;">
-                                <i class="fas fa-eye"></i>
+                    <?php 
+                    // Reset result pointer
+                    if ($ventas_categoria) {
+                        $ventas_categoria->data_seek(0);
+                    }
+                    ?>
+                    
+                    <?php if ($ventas_categoria && $ventas_categoria->num_rows > 0): ?>
+                        <?php while ($categoria_venta = $ventas_categoria->fetch_assoc()): ?>
+                            <?php
+                                $porcentaje_ventas = $total_ventas > 0 ? 
+                                    ($categoria_venta['valor_ventas'] / $total_ventas) * 100 : 0;
+                                $color_categoria = '#6f42c1'; // Color por defecto
+                            ?>
+                            <div class="category-sales-item">
+                                <div class="category-sales-header">
+                                    <div class="category-sales-icon" style="background: <?php echo $color_categoria; ?>;">
+                                        <i class="fas fa-tags"></i>
+                                    </div>
+                                    <div class="category-sales-info">
+                                        <div class="category-sales-name"><?php echo htmlspecialchars($categoria_venta['categoria']); ?></div>
+                                        <div class="category-sales-meta">
+                                            <?php echo number_format($categoria_venta['unidades_vendidas']); ?> unidades vendidas
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="category-sales-stats">
+                                    <div class="category-sales-value">₡<?php echo number_format($categoria_venta['valor_ventas']); ?></div>
+                                    <div class="category-sales-percentage">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: <?php echo min($porcentaje_ventas, 100); ?>%; background: <?php echo $color_categoria; ?>;"></div>
+                                        </div>
+                                        <span><?php echo number_format($porcentaje_ventas, 1); ?>%</span>
+                                    </div>
+                                    <div class="category-sales-details">
+                                        <?php echo $categoria_venta['total_movimientos']; ?> movimientos
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <div class="category-sales-item">
+                            <div class="category-sales-info" style="text-align: center; width: 100%;">
+                                <div class="category-sales-name">No hay datos de ventas por categoría</div>
+                                <div class="category-sales-meta">Los datos aparecerán cuando haya movimientos de salida</div>
                             </div>
                         </div>
-                        <div class="metric-value">2,450</div>
-                        <div class="metric-details">Visualizaciones</div>
-                        <div class="metric-indicator">↑+15.3% +325 vs mes anterior</div>
-                    </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Charts Section -->
                 <div class="charts-section">
                     <div class="chart-card">
                         <div class="chart-header">
-                            <h3 class="chart-title">Ventas por Categoría</h3>
+                            <h3 class="chart-title">Distribución de Productos</h3>
                             <div class="time-filters">
                                 <button class="time-filter active">Semana</button>
                                 <button class="time-filter">Mes</button>
@@ -149,88 +420,63 @@
                         
                         <div class="chart-metrics">
                             <div class="chart-metric">
-                                <div class="chart-metric-value">₡2.8M</div>
-                                <div class="chart-metric-label">Total</div>
+                                <div class="chart-metric-value"><?php echo number_format($stats_productos['total_productos']); ?></div>
+                                <div class="chart-metric-label">Total Productos</div>
                             </div>
                             <div class="chart-metric">
-                                <div class="chart-metric-value">₡280K</div>
-                                <div class="chart-metric-label">Promedio</div>
+                                <div class="chart-metric-value"><?php echo number_format($stats_productos['productos_activos']); ?></div>
+                                <div class="chart-metric-label">Activos</div>
                             </div>
                             <div class="chart-metric growth">
-                                <div class="chart-metric-value">+12.5%</div>
-                                <div class="chart-metric-label">Crecimiento</div>
+                                <div class="chart-metric-value">₡<?php echo number_format($stats_productos['valor_total']); ?></div>
+                                <div class="chart-metric-label">Valor Total</div>
                             </div>
                         </div>
                         
-                        <div style="height: 200px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">
-                            Gráfico de Ventas por Categoría
-                        </div>
+                        <canvas id="distribucionChart" width="400" height="200"></canvas>
                     </div>
 
                     <div class="top-products">
                         <div class="top-products-header">
-                            <h3 class="chart-title">Top Productos</h3>
+                            <h3 class="chart-title">Top Categorías</h3>
                             <button class="btn-icon">
                                 <i class="fas fa-download"></i>
                             </button>
                         </div>
                         
+                        <?php if ($top_categorias && $top_categorias->num_rows > 0): ?>
+                            <?php $rank = 1; ?>
+                            <?php while ($categoria = $top_categorias->fetch_assoc()): ?>
+                                <?php
+                                    $colors = ['#6f42c1', '#28a745', '#007bff', '#e83e8c', '#fd7e14'];
+                                    $icons = ['fa-tags', 'fa-box', 'fa-cube', 'fa-archive', 'fa-shopping-bag'];
+                                    $color = $colors[($rank - 1) % count($colors)];
+                                    $icon = $icons[($rank - 1) % count($icons)];
+                                ?>
                         <div class="product-item">
-                            <div class="product-rank">1</div>
-                            <div class="product-icon" style="background: #6f42c1;">
-                                <i class="fas fa-laptop"></i>
+                                    <div class="product-rank"><?php echo $rank; ?></div>
+                                    <div class="product-icon" style="background: <?php echo $color; ?>;">
+                                        <i class="fas <?php echo $icon; ?>"></i>
                             </div>
                             <div class="product-info">
-                                <div class="product-name">Laptop HP Pavilion</div>
-                                <div class="product-category">Electrónicos</div>
+                                        <div class="product-name"><?php echo htmlspecialchars($categoria['categoria']); ?></div>
+                                        <div class="product-category"><?php echo number_format($categoria['total_productos']); ?> productos</div>
                             </div>
                             <div class="product-stats">
-                                <div class="product-sales">25</div>
-                                <div class="product-revenue">₡6.25M</div>
-                                <div class="product-growth">
-                                    <i class="fas fa-arrow-up"></i>
-                                    +15%
-                                </div>
+                                        <div class="product-sales"><?php echo number_format($categoria['stock_total']); ?></div>
+                                        <div class="product-revenue">₡<?php echo number_format($categoria['valor_total']); ?></div>
                             </div>
-                        </div>
-                        
+                                </div>
+                                <?php $rank++; ?>
+                            <?php endwhile; ?>
+                        <?php else: ?>
                         <div class="product-item">
-                            <div class="product-rank">2</div>
-                            <div class="product-icon" style="background: #28a745;">
-                                <i class="fas fa-mobile-alt"></i>
-                            </div>
-                            <div class="product-info">
-                                <div class="product-name">iPhone 13 Pro</div>
-                                <div class="product-category">Electrónicos</div>
-                            </div>
-                            <div class="product-stats">
-                                <div class="product-sales">18</div>
-                                <div class="product-revenue">₡4.5M</div>
-                                <div class="product-growth">
-                                    <i class="fas fa-arrow-up"></i>
-                                    +12%
+                                <div class="product-info" style="text-align: center; width: 100%;">
+                                    <div class="product-name">No hay categorías disponibles</div>
+                                    <div class="product-category">Las categorías aparecerán cuando agregues productos</div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="product-item">
-                            <div class="product-rank">3</div>
-                            <div class="product-icon" style="background: #007bff;">
-                                <i class="fas fa-headphones"></i>
-                            </div>
-                            <div class="product-info">
-                                <div class="product-name">AirPods Pro</div>
-                                <div class="product-category">Accesorios</div>
-                            </div>
-                            <div class="product-stats">
-                                <div class="product-sales">32</div>
-                                <div class="product-revenue">₡2.88M</div>
-                                <div class="product-growth">
-                                    <i class="fas fa-arrow-up"></i>
-                                    +8%
-                                </div>
-                            </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -287,7 +533,23 @@
                                 <option value="Stock Bajo">Stock Bajo</option>
                             </select>
                             
-
+                            <select class="filter-select" id="stockFilter" style="display: none;">
+                                <option value="">Todos los stocks</option>
+                                <option value="con_stock">Con stock</option>
+                                <option value="sin_stock">Sin stock</option>
+                                <option value="stock_bajo">Stock bajo</option>
+                            </select>
+                            
+                            <select class="filter-select" id="sortFilter">
+                                <option value="fecha_desc">Más recientes</option>
+                                <option value="fecha_asc">Más antiguos</option>
+                                <option value="nombre_asc">Nombre A-Z</option>
+                                <option value="nombre_desc">Nombre Z-A</option>
+                                <option value="precio_asc">Precio menor</option>
+                                <option value="precio_desc">Precio mayor</option>
+                                <option value="stock_asc">Stock menor</option>
+                                <option value="stock_desc">Stock mayor</option>
+                            </select>
                         </div>
                     </div>
 
@@ -343,8 +605,25 @@
                                         
                                         // Formatear precio
                                         $precio_formateado = '₡' . number_format($producto['precio'], 0, ',', '.');
+                                        
+                                        // Clases para filtros
+                                        $categoria_class = strtolower(str_replace(' ', '-', $producto['categoria'] ?: 'sin-categoria'));
+                                        $estado_class = strtolower(str_replace(' ', '-', $estado_texto));
+                                        $stock_class = $producto['stock'] > 0 ? 'con-stock' : 'sin-stock';
+                                        if ($producto['stock'] > 0 && $producto['stock'] <= $producto['stock_minimo']) {
+                                            $stock_class = 'stock-bajo';
+                                        }
                                 ?>
-                                <tr data-product-id="<?php echo $producto['ID_PRODUCTO']; ?>">
+                                <tr data-product-id="<?php echo $producto['ID_PRODUCTO']; ?>" 
+                                    data-categoria="<?php echo htmlspecialchars($producto['categoria'] ?: ''); ?>"
+                                    data-estado="<?php echo $estado_texto; ?>"
+                                    data-stock="<?php echo $producto['stock']; ?>"
+                                    data-precio="<?php echo $producto['precio']; ?>"
+                                    data-nombre="<?php echo htmlspecialchars(strtolower($producto['nombre_producto'])); ?>"
+                                    data-codigo-barras="<?php echo htmlspecialchars($producto['codigo_barras'] ?: ''); ?>"
+                                    data-codigo-interno="<?php echo htmlspecialchars($producto['codigo_interno'] ?: ''); ?>"
+                                    data-proveedor="<?php echo htmlspecialchars(strtolower($producto['proveedor'] ?: '')); ?>"
+                                    class="product-row <?php echo $categoria_class; ?> <?php echo $estado_class; ?> <?php echo $stock_class; ?>">
                                     <td>
                                         <div style="display: flex; align-items: center; gap: 12px;">
                                             <?php if (!empty($imagen_url)): ?>
@@ -356,12 +635,31 @@
                                             <?php endif; ?>
                                             <div>
                                                 <div style="font-weight: 600;"><?php echo htmlspecialchars($producto['nombre_producto']); ?></div>
+                                                <div style="font-size: 0.85rem; color: #6c757d;">
+                                                    Creado: <?php echo date('d/m/Y', strtotime($producto['fecha_creacion'])); ?>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td><?php echo htmlspecialchars($producto['categoria'] ?: 'Sin categoría'); ?></td>
-                                    <td><?php echo $precio_formateado; ?></td>
-                                    <td><?php echo $producto['stock']; ?></td>
+                                    <td>
+                                        <span class="category-badge"><?php echo htmlspecialchars($producto['categoria'] ?: 'Sin categoría'); ?></span>
+                                    </td>
+                                    <td>
+                                        <div class="price-info">
+                                            <div class="price-main"><?php echo $precio_formateado; ?></div>
+                                            <?php if ($producto['precio_compra'] > 0): ?>
+                                                <div class="price-cost">Compra: ₡<?php echo number_format($producto['precio_compra'], 0, ',', '.'); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="stock-info">
+                                            <div class="stock-main"><?php echo $producto['stock']; ?></div>
+                                            <?php if ($producto['stock_minimo'] > 0): ?>
+                                                <div class="stock-min">Mín: <?php echo $producto['stock_minimo']; ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
                                     <td><span class="status-badge <?php echo $estado_clase; ?>"><?php echo $estado_texto; ?></span></td>
                                     <td>
                                         <div style="font-size: 0.85rem;">
@@ -382,16 +680,28 @@
                                             <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td><?php echo htmlspecialchars($producto['proveedor'] ?: 'Sin proveedor'); ?></td>
+                                    <td>
+                                        <div class="supplier-info">
+                                            <?php echo htmlspecialchars($producto['proveedor'] ?: 'Sin proveedor'); ?>
+                                            <?php if (!empty($producto['ubicacion'])): ?>
+                                                <div class="location-info">
+                                                    <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($producto['ubicacion']); ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
                                     <td>
                                         <div class="action-buttons">
-                                            <button class="btn-action btn-view" title="Ver" onclick="verProducto(<?php echo $producto['ID_PRODUCTO']; ?>)">
+                                            <button class="btn-action btn-view" title="Ver detalles" onclick="verProducto(<?php echo $producto['ID_PRODUCTO']; ?>)">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button class="btn-action btn-edit" title="Editar" onclick="editarProducto(<?php echo $producto['ID_PRODUCTO']; ?>)">
+                                            <button class="btn-action btn-edit" title="Editar producto" onclick="editarProducto(<?php echo $producto['ID_PRODUCTO']; ?>)">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="btn-action btn-delete" title="Eliminar" onclick="eliminarProducto(<?php echo $producto['ID_PRODUCTO']; ?>, '<?php echo htmlspecialchars($producto['nombre_producto']); ?>')">
+                                            <button class="btn-action btn-movement" title="Nuevo movimiento" onclick="nuevoMovimiento(<?php echo $producto['ID_PRODUCTO']; ?>, '<?php echo htmlspecialchars($producto['nombre_producto']); ?>')">
+                                                <i class="fas fa-exchange-alt"></i>
+                                            </button>
+                                            <button class="btn-action btn-delete" title="Eliminar producto" onclick="eliminarProducto(<?php echo $producto['ID_PRODUCTO']; ?>, '<?php echo htmlspecialchars($producto['nombre_producto']); ?>')">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -420,6 +730,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="../assets/js/main.js"></script>
     <script>
         // Inicializar funcionalidades específicas de productos
@@ -427,7 +738,306 @@
             initDarkMode();
             initProductFilters();
             checkUrlMessages();
+            initDistribucionChart(); // Agregar inicialización del gráfico
         });
+
+        // Función para inicializar filtros de productos
+        function initProductFilters() {
+            const searchInput = document.getElementById('searchInput');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const stockFilter = document.getElementById('stockFilter');
+            const sortFilter = document.getElementById('sortFilter');
+            const productRows = document.querySelectorAll('.product-row');
+
+            // Función para filtrar productos
+            function filterProducts() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const selectedCategory = categoryFilter.value.toLowerCase();
+                const selectedStatus = statusFilter.value.toLowerCase();
+                const selectedStock = stockFilter.value.toLowerCase();
+                const selectedSort = sortFilter.value;
+
+                let visibleProducts = [];
+
+                productRows.forEach(row => {
+                    const nombre = row.dataset.nombre;
+                    const categoria = row.dataset.categoria.toLowerCase();
+                    const estado = row.dataset.estado.toLowerCase();
+                    const stock = parseInt(row.dataset.stock);
+                    const precio = parseFloat(row.dataset.precio);
+                    const codigoBarras = row.dataset.codigoBarras.toLowerCase();
+                    const codigoInterno = row.dataset.codigoInterno.toLowerCase();
+                    const proveedor = row.dataset.proveedor;
+
+                    // Filtros
+                    let showRow = true;
+
+                    // Filtro de búsqueda
+                    if (searchTerm && !(
+                        nombre.includes(searchTerm) ||
+                        categoria.includes(searchTerm) ||
+                        codigoBarras.includes(searchTerm) ||
+                        codigoInterno.includes(searchTerm) ||
+                        proveedor.includes(searchTerm)
+                    )) {
+                        showRow = false;
+                    }
+
+                    // Filtro de categoría
+                    if (selectedCategory && categoria !== selectedCategory) {
+                        showRow = false;
+                    }
+
+                    // Filtro de estado
+                    if (selectedStatus && estado !== selectedStatus) {
+                        showRow = false;
+                    }
+
+                    // Filtro de stock
+                    if (selectedStock) {
+                        if (selectedStock === 'con_stock' && stock <= 0) {
+                            showRow = false;
+                        } else if (selectedStock === 'sin_stock' && stock > 0) {
+                            showRow = false;
+                        } else if (selectedStock === 'stock_bajo' && stock > 5) {
+                            showRow = false;
+                        }
+                    }
+
+                    if (showRow) {
+                        row.style.display = '';
+                        visibleProducts.push(row);
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                // Ordenar productos
+                sortProducts(visibleProducts, selectedSort);
+            }
+
+            // Función para ordenar productos
+            function sortProducts(products, sortType) {
+                const tbody = document.getElementById('productsTableBody');
+                
+                products.sort((a, b) => {
+                    switch (sortType) {
+                        case 'fecha_desc':
+                            return 0; // Ya están ordenados por fecha
+                        case 'fecha_asc':
+                            return 0; // Mantener orden original
+                        case 'nombre_asc':
+                            return a.dataset.nombre.localeCompare(b.dataset.nombre);
+                        case 'nombre_desc':
+                            return b.dataset.nombre.localeCompare(a.dataset.nombre);
+                        case 'precio_asc':
+                            return parseFloat(a.dataset.precio) - parseFloat(b.dataset.precio);
+                        case 'precio_desc':
+                            return parseFloat(b.dataset.precio) - parseFloat(a.dataset.precio);
+                        case 'stock_asc':
+                            return parseInt(a.dataset.stock) - parseInt(b.dataset.stock);
+                        case 'stock_desc':
+                            return parseInt(b.dataset.stock) - parseInt(a.dataset.stock);
+                        default:
+                            return 0;
+                    }
+                });
+
+                // Reordenar en el DOM
+                products.forEach(product => {
+                    tbody.appendChild(product);
+                });
+            }
+
+            // Event listeners
+            searchInput.addEventListener('input', filterProducts);
+            categoryFilter.addEventListener('change', filterProducts);
+            statusFilter.addEventListener('change', filterProducts);
+            stockFilter.addEventListener('change', filterProducts);
+            sortFilter.addEventListener('change', filterProducts);
+        }
+
+        // Funciones de acciones
+        function verProducto(id) {
+            window.location.href = `ver-producto.php?id=${id}`;
+        }
+
+        function editarProducto(id) {
+            window.location.href = `editar-producto.php?id=${id}`;
+        }
+
+        function nuevoMovimiento(id, nombre) {
+            Swal.fire({
+                title: 'Nuevo Movimiento',
+                text: `¿Qué tipo de movimiento deseas realizar para "${nombre}"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Entrada',
+                cancelButtonText: 'Salida',
+                showDenyButton: true,
+                denyButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `nuevo-movimiento.php?producto=${id}&tipo=entrada`;
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    window.location.href = `nuevo-movimiento.php?producto=${id}&tipo=salida`;
+                }
+            });
+        }
+
+        function eliminarProducto(id, nombre) {
+            Swal.fire({
+                title: '¿Eliminar producto?',
+                text: `¿Estás seguro de que deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Crear formulario para enviar la solicitud
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '../../src/inventario/productos/eliminar-producto.php';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'id_producto';
+                    input.value = id;
+                    
+                    form.appendChild(input);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+
+        function checkUrlMessages() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const success = urlParams.get('success');
+            const error = urlParams.get('error');
+            const message = urlParams.get('message');
+
+            if (success === '1') {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: message || 'Operación completada exitosamente',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else if (error === '1') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: message || 'Ha ocurrido un error'
+                });
+            }
+        }
+
+        // Inicializar gráfica de distribución
+        function initDistribucionChart() {
+            const ctx = document.getElementById('distribucionChart');
+            if (!ctx) {
+                console.log('Canvas no encontrado');
+                return;
+            }
+
+            try {
+                const chartData = <?php 
+                    if ($simple_result && $simple_result->num_rows > 0) {
+                        $labels = [];
+                        $data = [];
+                        $colors = ['#6f42c1', '#28a745', '#007bff', '#e83e8c', '#fd7e14', '#20c997', '#ffc107', '#dc3545'];
+                        
+                        $simple_result->data_seek(0);
+                        while ($row = $simple_result->fetch_assoc()) {
+                            $labels[] = $row['categoria'];
+                            $data[] = (int)$row['total_productos'];
+                        }
+                        
+                        echo json_encode([
+                            'labels' => $labels,
+                            'data' => $data,
+                            'colors' => array_slice($colors, 0, count($labels))
+                        ]);
+                    } else {
+                        echo json_encode(['labels' => [], 'data' => [], 'colors' => []]);
+                    }
+                ?>;
+
+                console.log('Chart Data:', chartData);
+                
+                if (chartData.labels.length === 0) {
+                    ctx.style.display = 'none';
+                    const placeholder = document.createElement('div');
+                    placeholder.style.cssText = 'height: 200px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;';
+                    placeholder.textContent = 'No hay datos para mostrar en la gráfica';
+                    ctx.parentNode.appendChild(placeholder);
+                    return;
+                }
+
+                if (typeof Chart === 'undefined') {
+                    console.error('Chart.js no está cargado');
+                    return;
+                }
+
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            data: chartData.data,
+                            backgroundColor: chartData.colors,
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${label}: ${value} productos (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                console.log('Gráfica inicializada correctamente');
+            } catch (error) {
+                console.error('Error al inicializar la gráfica:', error);
+                ctx.style.display = 'none';
+                const placeholder = document.createElement('div');
+                placeholder.style.cssText = 'height: 200px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;';
+                placeholder.textContent = 'Error al cargar la gráfica';
+                ctx.parentNode.appendChild(placeholder);
+            }
+        }
+
+
     </script>
 </body>
 </html> 

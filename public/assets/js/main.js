@@ -280,21 +280,44 @@ function eliminarProducto(id, nombre) {
 
 // Función para aplicar todos los filtros
 function aplicarFiltros() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-    const categoryFilter = document.getElementById('categoryFilter').value.toLowerCase().trim();
-    const statusFilter = document.getElementById('statusFilter').value.toLowerCase().trim();
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    if (!searchInput || !categoryFilter || !statusFilter) {
+        console.warn('Algunos elementos de filtro no encontrados');
+        return;
+    }
+    
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const categoryValue = categoryFilter.value.toLowerCase().trim();
+    const statusValue = statusFilter.value.toLowerCase().trim();
     
     const rows = document.querySelectorAll('#productsTableBody tr');
+    let visibleCount = 0;
     
     rows.forEach(row => {
-        // Obtener todos los datos de la fila para búsqueda completa
-        const productName = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
-        const category = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
-        const price = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
-        const stock = row.querySelector('td:nth-child(4)')?.textContent.toLowerCase() || '';
-        const status = row.querySelector('td:nth-child(5)')?.textContent.toLowerCase() || '';
-        const codes = row.querySelector('td:nth-child(6)')?.textContent.toLowerCase() || '';
-        const supplier = row.querySelector('td:nth-child(7)')?.textContent.toLowerCase() || '';
+        // Obtener datos específicos de cada columna con mejor manejo de errores
+        const productNameElement = row.querySelector('td:nth-child(1) div div');
+        const productName = productNameElement ? productNameElement.textContent.toLowerCase() : '';
+        
+        const categoryElement = row.querySelector('td:nth-child(2)');
+        const category = categoryElement ? categoryElement.textContent.toLowerCase() : '';
+        
+        const priceElement = row.querySelector('td:nth-child(3)');
+        const price = priceElement ? priceElement.textContent.toLowerCase() : '';
+        
+        const stockElement = row.querySelector('td:nth-child(4)');
+        const stock = stockElement ? stockElement.textContent.toLowerCase() : '';
+        
+        const statusElement = row.querySelector('td:nth-child(5) .status-badge');
+        const status = statusElement ? statusElement.textContent.toLowerCase() : '';
+        
+        const codesElement = row.querySelector('td:nth-child(6)');
+        const codes = codesElement ? codesElement.textContent.toLowerCase() : '';
+        
+        const supplierElement = row.querySelector('td:nth-child(7)');
+        const supplier = supplierElement ? supplierElement.textContent.toLowerCase() : '';
         
         // Combinar todos los campos para búsqueda
         const allFields = `${productName} ${category} ${price} ${stock} ${status} ${codes} ${supplier}`;
@@ -307,11 +330,51 @@ function aplicarFiltros() {
         }
         
         // Verificar filtros con mejor manejo de valores vacíos
-        const matchesCategory = categoryFilter.length === 0 || category.includes(categoryFilter);
-        const matchesStatus = statusFilter.length === 0 || status.includes(statusFilter);
+        const matchesCategory = categoryValue.length === 0 || category.includes(categoryValue);
+        const matchesStatus = statusValue.length === 0 || status.includes(statusValue);
         
-        row.style.display = (matchesSearch && matchesCategory && matchesStatus) ? '' : 'none';
+        const shouldShow = matchesSearch && matchesCategory && matchesStatus;
+        row.style.display = shouldShow ? '' : 'none';
+        
+        if (shouldShow) {
+            visibleCount++;
+        }
     });
+    
+    // Debug: mostrar información de búsqueda en consola
+    if (searchTerm) {
+        console.log('Búsqueda:', searchTerm);
+        console.log('Productos visibles:', visibleCount);
+        console.log('Total productos:', rows.length);
+    }
+    
+    // Mostrar mensaje si no hay resultados
+    showNoResultsMessage(visibleCount, searchTerm || categoryValue || statusValue);
+}
+
+// Función para mostrar mensaje cuando no hay resultados
+function showNoResultsMessage(visibleCount, hasFilters) {
+    const tableBody = document.querySelector('#productsTableBody');
+    if (!tableBody) return;
+    
+    let noResultsRow = tableBody.querySelector('.no-results-row');
+    
+    if (visibleCount === 0 && hasFilters) {
+        if (!noResultsRow) {
+            noResultsRow = document.createElement('tr');
+            noResultsRow.className = 'no-results-row';
+            noResultsRow.innerHTML = `
+                <td colspan="8" style="text-align: center; padding: 40px; color: #6c757d;">
+                    <i class="fas fa-search" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                    <div>No se encontraron productos</div>
+                    <div style="font-size: 0.9rem; margin-top: 8px;">Intenta con otros términos de búsqueda</div>
+                </td>
+            `;
+            tableBody.appendChild(noResultsRow);
+        }
+    } else if (noResultsRow) {
+        noResultsRow.remove();
+    }
 }
 
 // Función debounce para mejorar el rendimiento de la búsqueda
@@ -384,8 +447,47 @@ function initProductFilters() {
         statusFilter.addEventListener('change', aplicarFiltros);
     }
     
+    // Función para limpiar filtros
+    function clearProductFilters() {
+        if (searchInput) searchInput.value = '';
+        if (categoryFilter) categoryFilter.value = '';
+        if (statusFilter) statusFilter.value = '';
+        aplicarFiltros();
+    }
+    
+    // Agregar botón de limpiar filtros si no existe
+    const filtersSection = document.querySelector('.filters-section');
+    if (filtersSection && !document.getElementById('clearProductFiltersBtn')) {
+        const clearButton = document.createElement('button');
+        clearButton.id = 'clearProductFiltersBtn';
+        clearButton.type = 'button';
+        clearButton.className = 'btn-secondary';
+        clearButton.innerHTML = '<i class="fas fa-times"></i> Limpiar';
+        clearButton.onclick = clearProductFilters;
+        clearButton.style.marginLeft = '10px';
+        
+        const filterGroup = filtersSection.querySelector('.filter-group');
+        if (filterGroup) {
+            filterGroup.appendChild(clearButton);
+        }
+    }
+    
     // Ejecutar filtros al cargar la página para asegurar estado inicial correcto
     aplicarFiltros();
+    
+    // Debug: verificar si hay productos de accesorios
+    setTimeout(() => {
+        const rows = document.querySelectorAll('#productsTableBody tr');
+        let accesoriosCount = 0;
+        rows.forEach(row => {
+            const categoryElement = row.querySelector('td:nth-child(2)');
+            if (categoryElement && categoryElement.textContent.toLowerCase().includes('accesorios')) {
+                accesoriosCount++;
+                console.log('Producto de accesorios encontrado:', row.querySelector('td:nth-child(1) div div')?.textContent);
+            }
+        });
+        console.log('Total productos de accesorios:', accesoriosCount);
+    }, 1000);
 }
 
 // Verificar si hay mensajes de éxito o error en la URL
@@ -729,77 +831,111 @@ function initMobileMenu() {
         document.body.appendChild(overlay);
     }
     
-    if (mobileMenuToggle && sidebar) {
-        mobileMenuToggle.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            sidebar.classList.toggle('show');
-            overlay.classList.toggle('show');
-            document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : '';
-            
-            // Asegurar que el sidebar esté en la posición correcta
-            if (sidebar.classList.contains('show')) {
-                sidebar.style.left = '0';
-                sidebar.style.transform = 'translateX(0)';
-            } else {
-                sidebar.style.left = '0';
-                sidebar.style.transform = 'translateX(-100%)';
-            }
-        });
-        
-        // Cerrar sidebar al hacer clic en overlay
-        overlay.addEventListener('click', function() {
+    // Función para cerrar sidebar
+    function closeSidebar() {
+        if (sidebar.classList.contains('show')) {
             sidebar.classList.remove('show');
             overlay.classList.remove('show');
             document.body.style.overflow = '';
             sidebar.style.left = '0';
             sidebar.style.transform = 'translateX(-100%)';
-        });
-        
-        // Cerrar sidebar al hacer clic en enlaces de navegación
-        const navLinks = sidebar.querySelectorAll('.nav-item');
-        navLinks.forEach(link => {
-            link.addEventListener('click', function() {
-                sidebar.classList.remove('show');
-                overlay.classList.remove('show');
-                document.body.style.overflow = '';
-                sidebar.style.left = '0';
-                sidebar.style.transform = 'translateX(-100%)';
-            });
-        });
-        
-        // Cerrar sidebar al hacer clic fuera
-        document.addEventListener('click', function(e) {
-            if (!sidebar.contains(e.target) && !mobileMenuToggle.contains(e.target) && sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-                overlay.classList.remove('show');
-                document.body.style.overflow = '';
-                sidebar.style.left = '0';
-                sidebar.style.transform = 'translateX(-100%)';
+            localStorage.setItem('sidebarOpen', 'false');
+        }
+    }
+    
+    // Función para abrir sidebar
+    function openSidebar() {
+        if (!sidebar.classList.contains('show')) {
+            sidebar.classList.add('show');
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            sidebar.style.left = '0';
+            sidebar.style.transform = 'translateX(0)';
+            localStorage.setItem('sidebarOpen', 'true');
+        }
+    }
+    
+    if (mobileMenuToggle && sidebar) {
+        mobileMenuToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (sidebar.classList.contains('show')) {
+                closeSidebar();
+            } else {
+                openSidebar();
             }
         });
         
-        // Cerrar sidebar al redimensionar la ventana
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) {
-                sidebar.classList.remove('show');
-                overlay.classList.remove('show');
-                document.body.style.overflow = '';
-                sidebar.style.left = '0';
-                sidebar.style.transform = 'translateX(-100%)';
-            }
-        });
+        // Agregar botón de cerrar dentro del sidebar (opcional)
+        const sidebarHeader = sidebar.querySelector('.sidebar-header');
+        if (sidebarHeader && !sidebarHeader.querySelector('.close-sidebar-btn')) {
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-sidebar-btn';
+            closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            closeBtn.style.cssText = `
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: none;
+                border: none;
+                color: var(--text-primary);
+                font-size: 1.2rem;
+                cursor: pointer;
+                padding: 5px;
+                border-radius: 4px;
+                transition: all 0.3s ease;
+            `;
+            closeBtn.onclick = closeSidebar;
+            sidebarHeader.style.position = 'relative';
+            sidebarHeader.appendChild(closeBtn);
+        }
+        
+        // Cerrar sidebar al hacer clic en overlay
+        overlay.addEventListener('click', closeSidebar);
+        
+        // Cerrar sidebar solo al hacer clic en overlay
+        overlay.addEventListener('click', closeSidebar);
         
         // Cerrar sidebar con tecla Escape
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-                overlay.classList.remove('show');
-                document.body.style.overflow = '';
-                sidebar.style.left = '0';
-                sidebar.style.transform = 'translateX(-100%)';
+                closeSidebar();
             }
         });
+        
+        // Restaurar estado del sidebar al cargar la página (solo en móvil)
+        if (window.innerWidth <= 768) {
+            const sidebarState = localStorage.getItem('sidebarOpen');
+            if (sidebarState === 'true') {
+                // Pequeño delay para asegurar que el DOM esté listo
+                setTimeout(() => {
+                    openSidebar();
+                }, 100);
+            }
+        }
+        
+        // Manejar cambio de tamaño de ventana de manera inteligente
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                const currentWidth = window.innerWidth;
+                const wasMobile = localStorage.getItem('wasMobile') === 'true';
+                const isMobile = currentWidth <= 768;
+                
+                // Solo cerrar sidebar si cambiamos de móvil a desktop
+                if (wasMobile && !isMobile && sidebar.classList.contains('show')) {
+                    closeSidebar();
+                }
+                
+                // Actualizar estado de móvil
+                localStorage.setItem('wasMobile', isMobile.toString());
+            }, 250);
+        });
+        
+        // Establecer estado inicial de móvil
+        localStorage.setItem('wasMobile', (window.innerWidth <= 768).toString());
     }
 }
 
