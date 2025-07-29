@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 29-07-2025 a las 02:46:00
+-- Tiempo de generación: 29-07-2025 a las 19:07:44
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -94,7 +94,8 @@ INSERT INTO `tokens` (`ID_TOKEN`, `ID_USUARIO`, `token`, `usado`) VALUES
 (6, 22, '84646ff1452904c3de46ecbccb703848694f6971c2f3593a49a7091cc3e4fd7c', 1),
 (8, 24, '70ae0c2b8c52a9c6d95dbfe51fc66add77e4ac4196e3c9adfd41d42a87687486', 1),
 (9, 25, '7b26d10cf7268c5786369c1b4a80934c04514d23329ef01755a0e133fe19af8d', 1),
-(13, 30, '7438862a0d7b841c74e7df35798b9d1d21727a11ce174adadaffd7477ae301c5', 0);
+(13, 30, '7438862a0d7b841c74e7df35798b9d1d21727a11ce174adadaffd7477ae301c5', 0),
+(15, 32, 'b62047a95c6f4bb797f6a48b6910c8e223417859a6314b6ccd1e75d7da577474', 0);
 
 -- --------------------------------------------------------
 
@@ -114,6 +115,10 @@ CREATE TABLE `t_ajustes_inventario` (
   `valor_ajuste` decimal(10,2) NOT NULL,
   `motivo_ajuste` text NOT NULL,
   `fecha_ajuste` datetime NOT NULL DEFAULT current_timestamp(),
+  `responsable` varchar(100) DEFAULT NULL,
+  `tipo_diferencia` varchar(50) DEFAULT NULL,
+  `documento_respaldo` varchar(100) DEFAULT NULL,
+  `observaciones` text DEFAULT NULL,
   `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
   `estado` enum('pendiente','aprobado','rechazado') NOT NULL DEFAULT 'pendiente',
   `comentarios` text DEFAULT NULL
@@ -123,18 +128,18 @@ CREATE TABLE `t_ajustes_inventario` (
 -- Volcado de datos para la tabla `t_ajustes_inventario`
 --
 
-INSERT INTO `t_ajustes_inventario` (`ID_AJUSTE`, `ID_EMPRESA`, `ID_PRODUCTO`, `ID_USUARIO`, `tipo_ajuste`, `cantidad_ajustada`, `stock_anterior`, `stock_nuevo`, `valor_ajuste`, `motivo_ajuste`, `fecha_ajuste`, `fecha_creacion`, `estado`, `comentarios`) VALUES
-(1, 13, 2, 29, 'positivo', 10, 45, 55, 200000.00, 'Corrección de stock - Conteo físico', '2024-01-25 09:30:00', '2025-07-29 00:43:05', 'aprobado', NULL),
-(2, 13, 2, 29, 'negativo', 5, 55, 50, 100000.00, 'Pérdida por daño - Productos defectuosos', '2024-01-26 14:15:00', '2025-07-29 00:43:05', 'aprobado', NULL),
-(3, 13, 41, 29, 'positivo', 15, 27, 42, 300000.00, 'Reposición física - Devolución de cliente', '2024-01-27 11:45:00', '2025-07-29 00:43:05', 'aprobado', NULL),
-(4, 13, 41, 29, 'negativo', 3, 42, 39, 60000.00, 'Merma natural - Productos vencidos', '2024-01-28 16:20:00', '2025-07-29 00:43:05', 'aprobado', NULL),
-(5, 13, 46, 29, 'positivo', 8, 23, 31, 304000.00, 'Corrección de conteo - Error en sistema', '2024-01-29 10:10:00', '2025-07-29 00:43:05', 'aprobado', NULL),
-(6, 13, 46, 29, 'negativo', 2, 31, 29, 76000.00, 'Producto vencido - Retiro de inventario', '2024-01-30 13:30:00', '2025-07-29 00:43:05', 'aprobado', NULL),
-(7, 13, 47, 29, 'positivo', 12, 19, 31, 540000.00, 'Devolución de cliente - Productos en buen estado', '2024-01-31 08:45:00', '2025-07-29 00:43:05', 'aprobado', NULL),
-(8, 13, 47, 29, 'negativo', 1, 31, 30, 45000.00, 'Muestra para cliente - Demostración', '2024-02-01 15:15:00', '2025-07-29 00:43:05', 'aprobado', NULL),
-(9, 14, 48, 31, 'positivo', 5, 7, 12, 9000.00, 'Corrección de stock - Conteo físico', '2024-01-25 10:20:00', '2025-07-29 00:43:05', 'aprobado', NULL),
-(10, 14, 48, 31, 'negativo', 2, 12, 10, 3600.00, 'Producto defectuoso - Retiro de inventario', '2024-01-26 14:30:00', '2025-07-29 00:43:05', 'aprobado', NULL),
-(11, 13, 58, 29, 'negativo', 23, 1061, 1038, 28359.00, '33333333', '2025-07-29 02:44:00', '2025-07-29 00:44:44', 'aprobado', NULL);
+INSERT INTO `t_ajustes_inventario` (`ID_AJUSTE`, `ID_EMPRESA`, `ID_PRODUCTO`, `ID_USUARIO`, `tipo_ajuste`, `cantidad_ajustada`, `stock_anterior`, `stock_nuevo`, `valor_ajuste`, `motivo_ajuste`, `fecha_ajuste`, `responsable`, `tipo_diferencia`, `documento_respaldo`, `observaciones`, `fecha_creacion`, `estado`, `comentarios`) VALUES
+(1, 13, 2, 29, 'positivo', 10, 45, 55, 200000.00, 'Corrección de stock - Conteo físico', '2024-01-25 09:30:00', NULL, NULL, NULL, NULL, '2025-07-29 00:43:05', 'aprobado', NULL),
+(2, 13, 2, 29, 'negativo', 5, 55, 50, 100000.00, 'Pérdida por daño - Productos defectuosos', '2024-01-26 14:15:00', NULL, NULL, NULL, NULL, '2025-07-29 00:43:05', 'aprobado', NULL),
+(3, 13, 41, 29, 'positivo', 15, 27, 42, 300000.00, 'Reposición física - Devolución de cliente', '2024-01-27 11:45:00', NULL, NULL, NULL, NULL, '2025-07-29 00:43:05', 'aprobado', NULL),
+(4, 13, 41, 29, 'negativo', 3, 42, 39, 60000.00, 'Merma natural - Productos vencidos', '2024-01-28 16:20:00', NULL, NULL, NULL, NULL, '2025-07-29 00:43:05', 'aprobado', NULL),
+(5, 13, 46, 29, 'positivo', 8, 23, 31, 304000.00, 'Corrección de conteo - Error en sistema', '2024-01-29 10:10:00', NULL, NULL, NULL, NULL, '2025-07-29 00:43:05', 'aprobado', NULL),
+(6, 13, 46, 29, 'negativo', 2, 31, 29, 76000.00, 'Producto vencido - Retiro de inventario', '2024-01-30 13:30:00', NULL, NULL, NULL, NULL, '2025-07-29 00:43:05', 'aprobado', NULL),
+(7, 13, 47, 29, 'positivo', 12, 19, 31, 540000.00, 'Devolución de cliente - Productos en buen estado', '2024-01-31 08:45:00', NULL, NULL, NULL, NULL, '2025-07-29 00:43:05', 'aprobado', NULL),
+(8, 13, 47, 29, 'negativo', 1, 31, 30, 45000.00, 'Muestra para cliente - Demostración', '2024-02-01 15:15:00', NULL, NULL, NULL, NULL, '2025-07-29 00:43:05', 'aprobado', NULL),
+(9, 14, 48, 31, 'positivo', 5, 7, 12, 9000.00, 'Corrección de stock - Conteo físico', '2024-01-25 10:20:00', NULL, NULL, NULL, NULL, '2025-07-29 00:43:05', 'aprobado', NULL),
+(10, 14, 48, 31, 'negativo', 2, 12, 10, 3600.00, 'Producto defectuoso - Retiro de inventario', '2024-01-26 14:30:00', NULL, NULL, NULL, NULL, '2025-07-29 00:43:05', 'aprobado', NULL),
+(11, 13, 58, 29, 'negativo', 23, 1061, 1038, 28359.00, '33333333', '2025-07-29 02:44:00', NULL, NULL, NULL, NULL, '2025-07-29 00:44:44', 'aprobado', NULL);
 
 -- --------------------------------------------------------
 
@@ -159,7 +164,7 @@ CREATE TABLE `t_categorias` (
 
 INSERT INTO `t_categorias` (`ID_CATEGORIA`, `ID_EMPRESA`, `nombre_categoria`, `descripcion`, `color`, `estado`, `fecha_creacion`, `fecha_actualizacion`) VALUES
 (1, 13, 'Electrónicos', 'Productos electrónicos y tecnológicos', '#007bff', 'activo', '2025-07-28 03:44:24', '2025-07-28 03:44:24'),
-(2, 13, 'Accesorios', 'Accesorios para dispositivos electrónicos', '#28a745', 'activo', '2025-07-28 03:44:24', '2025-07-28 03:44:24'),
+(2, 13, 'Accesoriossssss', 'Accesorios para dispositivos electrónicos', '#28a745', 'activo', '2025-07-28 03:44:24', '2025-07-29 15:50:53'),
 (3, 13, 'Ropa', 'Vestimenta y accesorios de moda', '#dc3545', 'activo', '2025-07-28 03:44:24', '2025-07-28 03:47:04'),
 (4, 13, 'Hogar', 'Productos para el hogar y decoración', '#ffc107', 'activo', '2025-07-28 03:44:24', '2025-07-28 03:44:24'),
 (5, 13, 'Deportes', 'Artículos deportivos y fitness', '#17a2b8', 'activo', '2025-07-28 03:44:24', '2025-07-28 03:44:24'),
@@ -200,7 +205,8 @@ CREATE TABLE `t_empresa` (
 
 INSERT INTO `t_empresa` (`ID_EMPRESA`, `ID_DUEÑO`, `nombre_empresa`, `fecha_creacion`, `categoria`, `empleados`, `logo`, `moneda`, `pais`) VALUES
 (13, 29, 'Desarrollo Web', '2025-07-26', 'Farmacia', '51-100', NULL, 'NIO', 'AS'),
-(14, 31, 'Desarrollo Web', '2025-07-27', 'Fotografía', '6-15', 'logos-empresa/logo_68867b91635d49.17066049.jpg', 'CRC', 'CR');
+(14, 31, 'Desarrollo Web', '2025-07-27', 'Fotografía', '6-15', 'logos-empresa/logo_68867b91635d49.17066049.jpg', 'CRC', 'CR'),
+(15, 32, 'Marquitos empresario', '2025-07-28', 'Apicultura', '1-5', 'logos-empresa/logo_68884957a01405.84169927.jpg', 'CRC', 'CR');
 
 -- --------------------------------------------------------
 
@@ -215,9 +221,14 @@ CREATE TABLE `t_movimientos_inventario` (
   `ID_USUARIO` int(11) NOT NULL,
   `tipo_movimiento` enum('entrada','salida') NOT NULL,
   `cantidad` int(11) NOT NULL,
+  `precio_unitario` decimal(10,2) DEFAULT 0.00,
   `valor_movimiento` decimal(10,2) NOT NULL,
   `motivo` text NOT NULL,
   `fecha_movimiento` datetime NOT NULL DEFAULT current_timestamp(),
+  `referencia` varchar(100) DEFAULT NULL,
+  `proveedor_cliente` varchar(100) DEFAULT NULL,
+  `documento` varchar(50) DEFAULT NULL,
+  `observaciones` text DEFAULT NULL,
   `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -225,11 +236,14 @@ CREATE TABLE `t_movimientos_inventario` (
 -- Volcado de datos para la tabla `t_movimientos_inventario`
 --
 
-INSERT INTO `t_movimientos_inventario` (`ID_MOVIMIENTO`, `ID_EMPRESA`, `ID_PRODUCTO`, `ID_USUARIO`, `tipo_movimiento`, `cantidad`, `valor_movimiento`, `motivo`, `fecha_movimiento`, `fecha_creacion`) VALUES
-(11, 13, 58, 29, 'entrada', 1000, 1233000.00, 'Compramos massssss', '2025-07-28 20:21:00', '2025-07-28 18:21:36'),
-(12, 13, 58, 29, 'salida', 3, 3699.00, 'Corrección de error', '2025-07-29 02:36:00', '2025-07-29 00:36:53'),
-(13, 13, 58, 29, 'entrada', 12, 14796.00, 'Correción', '2025-07-29 02:37:00', '2025-07-29 00:37:54'),
-(14, 13, 58, 29, 'entrada', 12, 14796.00, 'aaaaaaa', '2025-07-29 02:42:00', '2025-07-29 00:42:31');
+INSERT INTO `t_movimientos_inventario` (`ID_MOVIMIENTO`, `ID_EMPRESA`, `ID_PRODUCTO`, `ID_USUARIO`, `tipo_movimiento`, `cantidad`, `precio_unitario`, `valor_movimiento`, `motivo`, `fecha_movimiento`, `referencia`, `proveedor_cliente`, `documento`, `observaciones`, `fecha_creacion`) VALUES
+(11, 13, 58, 29, 'entrada', 1000, 0.00, 1233000.00, 'Compramos massssss', '2025-07-28 20:21:00', NULL, NULL, NULL, NULL, '2025-07-28 18:21:36'),
+(12, 13, 58, 29, 'salida', 3, 0.00, 3699.00, 'Corrección de error', '2025-07-29 02:36:00', NULL, NULL, NULL, NULL, '2025-07-29 00:36:53'),
+(13, 13, 58, 29, 'entrada', 12, 0.00, 14796.00, 'Correción', '2025-07-29 02:37:00', NULL, NULL, NULL, NULL, '2025-07-29 00:37:54'),
+(14, 13, 58, 29, 'entrada', 12, 0.00, 14796.00, 'aaaaaaa', '2025-07-29 02:42:00', NULL, NULL, NULL, NULL, '2025-07-29 00:42:31'),
+(15, 13, 61, 29, 'salida', 5, 2000.00, 10000.00, 'AAAAA', '2025-07-29 06:35:00', '23123123', '12313', '11233', '12323', '2025-07-29 04:36:16'),
+(16, 13, 61, 29, 'entrada', 1, 2000.00, 2000.00, 'Saliditaa', '2025-07-29 07:20:00', '11111', 'Juancito', '2222', 'Salidita', '2025-07-29 05:21:05'),
+(17, 13, 47, 29, 'salida', 2, 55000.00, 110000.00, 'aaa', '2025-07-29 18:00:00', '', '', '', '', '2025-07-29 16:01:08');
 
 -- --------------------------------------------------------
 
@@ -265,20 +279,22 @@ CREATE TABLE `t_productos` (
 
 INSERT INTO `t_productos` (`ID_PRODUCTO`, `ID_EMPRESA`, `nombre_producto`, `descripcion`, `categoria`, `precio`, `precio_compra`, `stock`, `stock_minimo`, `codigo_barras`, `codigo_interno`, `proveedor`, `ubicacion`, `imagen`, `estado`, `fecha_creacion`, `fecha_actualizacion`, `creado_por`, `actualizado_por`) VALUES
 (2, 13, 'Reloj', 'Un reloj muy bello', 'dddd', 20000.00, 15000.00, 50, 3, '123123123123', '33333333', 'TechCorp INC', 'Estante 1', 'uploads/img/fotos-productos/6886f52e289b7_1753675054.jpg', 'activo', '2025-07-27 21:20:54', '2025-07-28 11:59:42', 29, 29),
-(41, 13, 'Cargador USB-C', 'Cargador USB-C 65W, carga rápida, compatible universal', 'Accesorios', 25000.00, 20000.00, 0, 10, '7891234567898', 'CAR001', 'Distribuidora Norte', 'Estante D-3', NULL, 'activo', '2025-07-27 22:01:34', '2025-07-27 23:15:47', NULL, 29),
+(41, 13, 'Cargador USB-C', 'Cargador USB-C 65W, carga rápida, compatible universal', 'Accesoriossssss', 25000.00, 20000.00, 0, 10, '7891234567898', 'CAR001', 'Distribuidora Norte', 'Estante D-3', NULL, 'activo', '2025-07-27 22:01:34', '2025-07-29 09:50:53', NULL, 29),
 (46, 13, 'Router WiFi TP-Link', 'Router WiFi TP-Link Archer C6, AC1200, doble banda', 'Electrónicos', 45000.00, 38000.00, 5, 8, '7891234567903', 'ROU001', 'Distribuidora Norte', 'Estante F-2', NULL, 'activo', '2025-07-27 22:01:34', '2025-07-28 09:54:00', NULL, 29),
-(47, 13, 'Altavoces Bluetooth JBL', 'Altavoces Bluetooth JBL Flip 5, sonido portátil', 'Hogar', 55000.00, 45000.00, 18, 6, '7891234567904', '44444', 'Proveedor Express', 'Estante C-3', NULL, 'activo', '2025-07-27 22:01:34', '2025-07-28 11:32:57', NULL, 29),
+(47, 13, 'Altavoces Bluetooth JBL', 'Altavoces Bluetooth JBL Flip 5, sonido portátil', 'Hogar', 55000.00, 45000.00, 16, 6, '7891234567904', '44444', 'Proveedor Express', 'Estante C-3', NULL, 'activo', '2025-07-27 22:01:34', '2025-07-29 10:01:08', NULL, 29),
 (48, 14, 'Paracetamol 500mg', 'Paracetamol 500mg, 20 tabletas, alivia dolor y fiebre', 'Farmacéuticos', 2500.00, 1800.00, 100, 20, '7891234568001', 'PAR001', 'Farmacéutica Nacional', 'Estante A-1', NULL, 'activo', '2025-07-27 22:01:34', NULL, NULL, NULL),
 (49, 14, 'Ibuprofeno 400mg', 'Ibuprofeno 400mg, 30 tabletas, antiinflamatorio', 'Farmacéuticos', 3200.00, 2400.00, 80, 15, '7891234568002', 'IBU001', 'Distribuidora Médica', 'Estante A-2', NULL, 'activo', '2025-07-27 22:01:34', NULL, NULL, NULL),
 (50, 14, 'Vitamina C 1000mg', 'Vitamina C 1000mg, 60 tabletas, refuerzo inmunológico', 'Suplementos', 4500.00, 3500.00, 60, 12, '7891234568003', 'VIT001', 'Importadora de Salud', 'Estante B-1', NULL, 'activo', '2025-07-27 22:01:34', NULL, NULL, NULL),
 (51, 14, 'Omega 3 1000mg', 'Omega 3 1000mg, 90 cápsulas, salud cardiovascular', 'Suplementos', 8500.00, 6500.00, 45, 10, '7891234568004', 'OME001', 'Proveedor Farmacéutico', 'Estante B-2', NULL, 'activo', '2025-07-27 22:01:34', NULL, NULL, NULL),
 (52, 14, 'Shampoo Anticaspa', 'Shampoo anticaspa Head & Shoulders 400ml', 'Higiene', 3500.00, 2800.00, 30, 8, '7891234568005', 'SHA001', 'Distribuidora de Cosméticos', 'Estante C-1', NULL, 'activo', '2025-07-27 22:01:34', NULL, NULL, NULL),
-(53, 14, 'Jabón Antibacterial', 'Jabón antibacterial Dial 90g, protección contra bacterias', 'Higiene', 1200.00, 900.00, 75, 15, '7891234568006', 'JAB001', 'Farmacéutica Nacional', 'Estante C-2', NULL, 'activo', '2025-07-27 22:01:34', NULL, NULL, NULL),
-(54, 14, 'Pasta Dental Colgate', 'Pasta dental Colgate Total 150g, protección completa', 'Higiene', 2800.00, 2200.00, 50, 12, '7891234568007', 'PAS001', 'Distribuidora Médica', 'Estante C-3', NULL, 'activo', '2025-07-27 22:01:34', NULL, NULL, NULL),
+(53, 14, 'Jabón Antibacterial', 'Jabón antibacterial Dial 90g, protección contra bacterias', 'Higiene', 1200.00, 900.00, 5, 15, '7891234568006', 'JAB001', 'Farmacéutica Nacional', 'Estante C-2', NULL, 'activo', '2025-07-27 22:01:34', '2025-07-28 22:02:30', NULL, 31),
+(54, 14, 'Pasta Dental Colgate', 'Pasta dental Colgate Total 150g, protección completa', 'Higiene', 2800.00, 2200.00, 0, 12, '7891234568007', 'PAS001', 'Distribuidora Médica', 'Estante C-3', NULL, 'activo', '2025-07-27 22:01:34', '2025-07-28 22:01:49', NULL, 31),
 (55, 14, 'Desodorante Rexona', 'Desodorante Rexona Clinical 50ml, protección 48h', 'Higiene', 4200.00, 3400.00, 40, 10, '7891234568008', 'DES001', 'Importadora de Salud', 'Estante C-4', NULL, 'activo', '2025-07-27 22:01:34', NULL, NULL, NULL),
 (56, 14, 'Termómetro Digital', 'Termómetro digital Braun, lectura rápida, pantalla LCD', 'Equipos Médicos', 8500.00, 6800.00, 25, 6, '7891234568009', 'TER001', 'Proveedor Farmacéutico', 'Estante D-1', NULL, 'activo', '2025-07-27 22:01:34', NULL, NULL, NULL),
 (57, 14, 'Tensiómetro Digital', 'Tensiómetro digital Omron, medición automática', 'Equipos Médicos', 45000.00, 36000.00, 8, 3, '7891234568010', 'TEN001', 'Distribuidora de Cosméticos', 'Estante D-2', NULL, 'activo', '2025-07-27 22:01:34', NULL, NULL, NULL),
-(58, 13, 'Perejil', 'Un alimento muy rico', 'Juguetes', 1233.00, 132.00, 1038, 3, '331223212', '123', 'TechCorp INC', 'Estante 1', 'uploads/img/fotos-productos/68870433519eb_1753678899.JPEG', 'activo', '2025-07-27 23:01:39', '2025-07-28 18:44:44', 29, 29);
+(58, 13, 'Perejil', 'Un alimento muy rico', 'Juguetes', 1233.00, 132.00, 1038, 3, '331223212', '123', 'TechCorp INC', 'Estante 1', 'uploads/img/fotos-productos/68870433519eb_1753678899.JPEG', 'activo', '2025-07-27 23:01:39', '2025-07-28 18:44:44', 29, 29),
+(60, 14, 'aaaaa', 'asd', 'Cuidado Infantil', 22222.00, 200.00, 45, 15, '1444123', '12332', 'Distribuidora Médica', '', '', 'activo', '2025-07-28 22:00:54', NULL, 31, NULL),
+(61, 13, 'UEA', 'JUAN CARLITOS', 'Accesoriossssss', 2000.00, 500.00, 41, 15, '7891234127904', '231235123', 'Proveedor Express', 'Estante C-3', 'uploads/img/fotos-productos/68884f8bdb77b_1753763723.jpeg', 'activo', '2025-07-28 22:35:23', '2025-07-29 10:02:32', 29, 29);
 
 -- --------------------------------------------------------
 
@@ -341,7 +357,8 @@ CREATE TABLE `t_usuarios` (
 
 INSERT INTO `t_usuarios` (`ID_USUARIO`, `correo`, `correo_verifi`, `contraseña`, `nombre_completo`, `telefono`, `tel_verifi`, `rol`, `ID_EMPRESA`, `a2f`, `plan`) VALUES
 (29, 'quesadajeremy7@gmail.com', 1, '$2y$10$nNAVj5Yg2H4veRFlm16u6utD1oe5MrTXF99Al1WXvKfHN/r.fYMOa', 'Jeremy Quesada', NULL, 0, 0, 13, 0, NULL),
-(31, 'kekan12327@0tires.com', 1, '$2y$10$.lz.K2gYms0dMwKDd9O0lurE7K91GVjw5jx8mm1o6WPac2uWhnwJW', 'Juan Peralta', NULL, 0, 0, 14, 0, NULL);
+(31, 'kekan12327@0tires.com', 1, '$2y$10$.lz.K2gYms0dMwKDd9O0lurE7K91GVjw5jx8mm1o6WPac2uWhnwJW', 'Juan Peralta', NULL, 0, 0, 14, 0, NULL),
+(32, 'test@mail.com', 1, '$2y$10$nNAVj5Yg2H4veRFlm16u6utD1oe5MrTXF99Al1WXvKfHN/r.fYMOa', 'Carlos Martinez', NULL, 0, 0, 15, 0, NULL);
 
 --
 -- Índices para tablas volcadas
@@ -461,7 +478,7 @@ ALTER TABLE `pruebas`
 -- AUTO_INCREMENT de la tabla `tokens`
 --
 ALTER TABLE `tokens`
-  MODIFY `ID_TOKEN` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `ID_TOKEN` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `t_ajustes_inventario`
@@ -479,19 +496,19 @@ ALTER TABLE `t_categorias`
 -- AUTO_INCREMENT de la tabla `t_empresa`
 --
 ALTER TABLE `t_empresa`
-  MODIFY `ID_EMPRESA` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `ID_EMPRESA` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `t_movimientos_inventario`
 --
 ALTER TABLE `t_movimientos_inventario`
-  MODIFY `ID_MOVIMIENTO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `ID_MOVIMIENTO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT de la tabla `t_productos`
 --
 ALTER TABLE `t_productos`
-  MODIFY `ID_PRODUCTO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `ID_PRODUCTO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
 
 --
 -- AUTO_INCREMENT de la tabla `t_proveedores`
@@ -503,7 +520,7 @@ ALTER TABLE `t_proveedores`
 -- AUTO_INCREMENT de la tabla `t_usuarios`
 --
 ALTER TABLE `t_usuarios`
-  MODIFY `ID_USUARIO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `ID_USUARIO` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- Restricciones para tablas volcadas
