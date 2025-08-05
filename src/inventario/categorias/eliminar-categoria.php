@@ -1,25 +1,30 @@
 <?php
+    session_start();
     include('../../../config/db.php');
     require_once('../../../src/auth/sesion/verificaciones-sesion.php');
     
     // Verificar que sea una petición POST
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Método no permitido']);
-        exit;
+        header("Location: ../../../public/inventario/categorias.php?error=1&message=" . urlencode('Método no permitido'));
+        exit();
     }
     
-    // Obtener el ID de la categoría del cuerpo de la petición
-    $input = json_decode(file_get_contents('php://input'), true);
-    $id_categoria = $input['id'] ?? null;
+    // Obtener el ID de la categoría del formulario POST
+    $id_categoria = $_POST['id_categoria'] ?? null;
     
     // Log para depuración
     error_log("Eliminar categoría - ID recibido: " . ($id_categoria ?? 'null'));
-    error_log("Eliminar categoría - Input completo: " . json_encode($input));
+    error_log("Eliminar categoría - POST completo: " . json_encode($_POST));
     
     if (!$id_categoria) {
-        echo json_encode(['success' => false, 'message' => 'ID de categoría no proporcionado']);
-        exit;
+        header("Location: ../../../public/inventario/categorias.php?error=1&message=" . urlencode('ID de categoría no proporcionado'));
+        exit();
+    }
+    
+    // Verificar que el usuario esté autenticado
+    if (!isset($_SESSION['id_usuario'])) {
+        header("Location: ../../../public/inventario/categorias.php?error=1&message=" . urlencode('Usuario no autenticado'));
+        exit();
     }
     
     $id_usuario = $_SESSION['id_usuario'];
@@ -42,8 +47,8 @@
         
         if ($result->num_rows === 0) {
             error_log("Eliminar categoría - Categoría no encontrada para ID: " . $id_categoria);
-            echo json_encode(['success' => false, 'message' => 'Categoría no encontrada o no tienes permisos para eliminarla']);
-            exit;
+            header("Location: ../../../public/inventario/categorias.php?error=1&message=" . urlencode('Categoría no encontrada o no tienes permisos para eliminarla'));
+            exit();
         }
         
         $categoria = $result->fetch_assoc();
@@ -64,13 +69,26 @@
         
         error_log("Eliminar categoría - Productos asociados: " . $productos_result['total_productos']);
         
+        // Si hay productos asociados, actualizarlos para que queden sin categoría
         if ($productos_result['total_productos'] > 0) {
-            error_log("Eliminar categoría - No se puede eliminar, tiene productos asociados");
-            echo json_encode([
-                'success' => false, 
-                'message' => "No se puede eliminar la categoría '$nombre_categoria' porque tiene {$productos_result['total_productos']} productos asociados. Primero mueve o elimina los productos."
-            ]);
-            exit;
+            error_log("Eliminar categoría - Actualizando productos para quitar categoría");
+            
+            $stmt_update_productos = $conn->prepare("
+                UPDATE t_productos 
+                SET categoria = NULL, fecha_actualizacion = NOW()
+                WHERE categoria = ? AND ID_EMPRESA = ?
+            ");
+            $stmt_update_productos->bind_param("si", $nombre_categoria, $id_empresa);
+            
+            if (!$stmt_update_productos->execute()) {
+                error_log("Eliminar categoría - Error actualizando productos: " . $stmt_update_productos->error);
+                $mensaje = "Error al actualizar productos asociados: " . $stmt_update_productos->error;
+                header("Location: ../../../public/inventario/categorias.php?error=1&message=" . urlencode($mensaje));
+                exit();
+            }
+            
+            $productos_actualizados = $stmt_update_productos->affected_rows;
+            error_log("Eliminar categoría - Productos actualizados: " . $productos_actualizados);
         }
         
         // Eliminar la categoría
@@ -81,24 +99,26 @@
         
         if ($stmt_eliminar->execute()) {
             error_log("Eliminar categoría - Categoría eliminada exitosamente");
-            echo json_encode([
-                'success' => true, 
-                'message' => "Categoría '$nombre_categoria' eliminada exitosamente"
-            ]);
+            
+            if (isset($productos_actualizados) && $productos_actualizados > 0) {
+                $mensaje = "Categoría '$nombre_categoria' eliminada exitosamente. $productos_actualizados productos quedaron sin categoría.";
+            } else {
+                $mensaje = "Categoría '$nombre_categoria' eliminada exitosamente";
+            }
+            
+            header("Location: ../../../public/inventario/categorias.php?success=1&message=" . urlencode($mensaje));
+            exit();
         } else {
             error_log("Eliminar categoría - Error en la eliminación: " . $stmt_eliminar->error);
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Error al eliminar la categoría: ' . $stmt_eliminar->error
-            ]);
+            $mensaje = 'Error al eliminar la categoría: ' . $stmt_eliminar->error;
+            header("Location: ../../../public/inventario/categorias.php?error=1&message=" . urlencode($mensaje));
+            exit();
         }
         
     } catch (Exception $e) {
         error_log("Eliminar categoría - Excepción capturada: " . $e->getMessage());
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Error: ' . $e->getMessage()
-        ]);
+        header("Location: ../../../public/inventario/categorias.php?error=1&message=" . urlencode('Error: ' . $e->getMessage()));
+        exit();
     }
     
     $conn->close();

@@ -1,6 +1,6 @@
 <header class="header">
     <div class="header-left">
-        <button class="btn-icon mobile-menu-toggle" id="mobileMenuToggle" style="display: none;">
+        <button class="btn-icon mobile-menu-toggle" id="mobileMenuToggle">
             <i class="fas fa-bars"></i>
         </button>
         <div class="breadcrumb">

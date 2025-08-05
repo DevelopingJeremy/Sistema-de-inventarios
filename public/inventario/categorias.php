@@ -703,15 +703,9 @@
                                             <button class="btn-action btn-edit" title="Editar categoría" onclick="editarCategoria(<?php echo $categoria['ID_CATEGORIA']; ?>)">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <?php if ($categoria['total_productos'] == 0): ?>
-                                                <button class="btn-action btn-delete" title="Eliminar categoría" onclick="eliminarCategoria(<?php echo $categoria['ID_CATEGORIA']; ?>, '<?php echo htmlspecialchars($categoria['nombre_categoria']); ?>')">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            <?php else: ?>
-                                                <button class="btn-action btn-delete" title="No se puede eliminar (tiene productos)" disabled>
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            <?php endif; ?>
+                                            <button class="btn-action btn-delete" title="Eliminar categoría" onclick="eliminarCategoria(<?php echo $categoria['ID_CATEGORIA']; ?>, '<?php echo htmlspecialchars($categoria['nombre_categoria']); ?>', <?php echo $categoria['total_productos']; ?>)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>

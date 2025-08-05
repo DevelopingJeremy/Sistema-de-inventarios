@@ -277,6 +277,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/styles.css">
+    <script src="../assets/js/main.js"></script>
 </head>
 
 <body>
@@ -549,9 +550,6 @@
                             <p class="section-subtitle">Análisis de ventas por período</p>
                         </div>
                         <div class="performance-filters">
-                            <button class="performance-filter active" data-period="7">Semana</button>
-                            <button class="performance-filter" data-period="30">Mes</button>
-                            <button class="performance-filter" data-period="90">Trimestre</button>
                             <button class="btn-icon" onclick="descargarPDF()" title="Descargar PDF del Dashboard">
                                 <i class="fas fa-download"></i>
                             </button>
@@ -662,7 +660,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             initDarkMode();
             initSalesChart();
-            initPerformanceFilters();
         });
         
         // Función para inicializar el gráfico de ventas
@@ -732,23 +729,7 @@
             });
         }
 
-        // Función para inicializar filtros de rendimiento
-        function initPerformanceFilters() {
-            const filters = document.querySelectorAll('.performance-filter');
-            filters.forEach(filter => {
-                filter.addEventListener('click', function() {
-                    // Remover clase active de todos los filtros
-                    filters.forEach(f => f.classList.remove('active'));
-                    // Agregar clase active al filtro clickeado
-                    this.classList.add('active');
-                    
-                    // Aquí puedes agregar lógica para cambiar los datos del gráfico
-                    // según el período seleccionado
-                    const period = this.dataset.period;
-                    console.log('Período seleccionado:', period);
-                });
-            });
-        }
+
         
         // Función para descargar PDF del dashboard
         function descargarPDF() {
@@ -779,6 +760,18 @@
             });
         });
         <?php endif; ?>
+        
+        // Inicializar funciones cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar menú móvil
+            initMobileMenu();
+            
+            // Inicializar modo oscuro
+            initDarkMode();
+        });
+        
+        // Los estilos móviles se manejan automáticamente con CSS media queries
+        // No es necesario forzar estilos con JavaScript
     </script>
 </body>
 

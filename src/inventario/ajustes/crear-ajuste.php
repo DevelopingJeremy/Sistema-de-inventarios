@@ -79,10 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ID_EMPRESA, ID_PRODUCTO, ID_USUARIO, tipo_ajuste, 
                     cantidad_ajustada, stock_anterior, stock_nuevo, 
                     valor_ajuste, motivo_ajuste, fecha_ajuste, 
-                    responsable, tipo_diferencia, documento_respaldo, observaciones, estado
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aprobado')
+                    responsable, tipo_diferencia, documento_respaldo, observaciones
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt_ajuste->bind_param("iiisiidssssss", 
+            $stmt_ajuste->bind_param("iiisiidsssssss", 
                 $id_empresa, $id_producto, $id_usuario, $tipo_ajuste,
                 $cantidad_ajustada, $stock_anterior, $stock_nuevo, 
                 $valor_ajuste, $motivo_ajuste, $fecha_ajuste,

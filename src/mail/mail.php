@@ -32,7 +32,7 @@ try {
     $mail->Port       = $PortMail;          //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
 
     //* Recipients
-    $mail->setFrom('info@covomosa.app', 'Hybox');                   // Enviado desde
+    $mail->setFrom('noreply@jeremyqg.com', 'Hybox');                   // Enviado desde
     $mail->addAddress($_SESSION['correo']);                      // Enviado hacia
 
     //* //Attachments

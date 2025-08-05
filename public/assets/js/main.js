@@ -823,6 +823,9 @@ function initMobileMenu() {
     const mobileMenuToggle = document.getElementById('mobileMenuToggle');
     const sidebar = document.querySelector('.sidebar');
     
+    // Limpiar estado del sidebar al cargar nueva página
+    localStorage.removeItem('sidebarOpen');
+    
     // Crear overlay si no existe
     let overlay = document.querySelector('.sidebar-overlay');
     if (!overlay) {
@@ -833,30 +836,36 @@ function initMobileMenu() {
     
     // Función para cerrar sidebar
     function closeSidebar() {
-        if (sidebar.classList.contains('show')) {
+        if (sidebar && sidebar.classList.contains('show')) {
             sidebar.classList.remove('show');
-            overlay.classList.remove('show');
+            if (overlay) overlay.classList.remove('show');
             document.body.style.overflow = '';
-            sidebar.style.left = '0';
-            sidebar.style.transform = 'translateX(-100%)';
-            localStorage.setItem('sidebarOpen', 'false');
+            if (sidebar) {
+                sidebar.style.left = '0';
+                sidebar.style.transform = 'translateX(-100%)';
+            }
         }
     }
     
     // Función para abrir sidebar
     function openSidebar() {
-        if (!sidebar.classList.contains('show')) {
+        if (sidebar && !sidebar.classList.contains('show')) {
             sidebar.classList.add('show');
-            overlay.classList.add('show');
+            if (overlay) overlay.classList.add('show');
             document.body.style.overflow = 'hidden';
-            sidebar.style.left = '0';
-            sidebar.style.transform = 'translateX(0)';
-            localStorage.setItem('sidebarOpen', 'true');
+            if (sidebar) {
+                sidebar.style.left = '0';
+                sidebar.style.transform = 'translateX(0)';
+            }
         }
     }
     
     if (mobileMenuToggle && sidebar) {
-        mobileMenuToggle.addEventListener('click', function(e) {
+        // Remover event listeners anteriores para evitar duplicados
+        const newMobileMenuToggle = mobileMenuToggle.cloneNode(true);
+        mobileMenuToggle.parentNode.replaceChild(newMobileMenuToggle, mobileMenuToggle);
+        
+        newMobileMenuToggle.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             
@@ -867,7 +876,7 @@ function initMobileMenu() {
             }
         });
         
-        // Agregar botón de cerrar dentro del sidebar (opcional)
+        // Agregar botón de cerrar dentro del sidebar
         const sidebarHeader = sidebar.querySelector('.sidebar-header');
         if (sidebarHeader && !sidebarHeader.querySelector('.close-sidebar-btn')) {
             const closeBtn = document.createElement('button');
@@ -885,6 +894,7 @@ function initMobileMenu() {
                 padding: 5px;
                 border-radius: 4px;
                 transition: all 0.3s ease;
+                z-index: 1001;
             `;
             closeBtn.onclick = closeSidebar;
             sidebarHeader.style.position = 'relative';
@@ -892,10 +902,9 @@ function initMobileMenu() {
         }
         
         // Cerrar sidebar al hacer clic en overlay
-        overlay.addEventListener('click', closeSidebar);
-        
-        // Cerrar sidebar solo al hacer clic en overlay
-        overlay.addEventListener('click', closeSidebar);
+        if (overlay) {
+            overlay.addEventListener('click', closeSidebar);
+        }
         
         // Cerrar sidebar con tecla Escape
         document.addEventListener('keydown', function(e) {
@@ -904,44 +913,69 @@ function initMobileMenu() {
             }
         });
         
-        // Restaurar estado del sidebar al cargar la página (solo en móvil)
-        if (window.innerWidth <= 768) {
-            const sidebarState = localStorage.getItem('sidebarOpen');
-            if (sidebarState === 'true') {
-                // Pequeño delay para asegurar que el DOM esté listo
+        // Cerrar sidebar al hacer clic en enlaces del sidebar
+        const sidebarLinks = sidebar.querySelectorAll('a');
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                // Pequeño delay para que se vea la transición
                 setTimeout(() => {
-                    openSidebar();
+                    closeSidebar();
                 }, 100);
-            }
-        }
+            });
+        });
         
-        // Manejar cambio de tamaño de ventana de manera inteligente
+        // Manejar cambio de tamaño de ventana
         let resizeTimeout;
         window.addEventListener('resize', function() {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(function() {
                 const currentWidth = window.innerWidth;
-                const wasMobile = localStorage.getItem('wasMobile') === 'true';
                 const isMobile = currentWidth <= 768;
                 
-                // Solo cerrar sidebar si cambiamos de móvil a desktop
-                if (wasMobile && !isMobile && sidebar.classList.contains('show')) {
+                // Cerrar sidebar si cambiamos de móvil a desktop
+                if (!isMobile && sidebar.classList.contains('show')) {
                     closeSidebar();
                 }
-                
-                // Actualizar estado de móvil
-                localStorage.setItem('wasMobile', isMobile.toString());
             }, 250);
         });
-        
-        // Establecer estado inicial de móvil
-        localStorage.setItem('wasMobile', (window.innerWidth <= 768).toString());
     }
+    
+    // Asegurar que el sidebar esté cerrado al cargar la página
+    if (sidebar) {
+        sidebar.classList.remove('show');
+        sidebar.style.transform = 'translateX(-100%)';
+    }
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+    document.body.style.overflow = '';
 }
 
 // Inicializar menú móvil cuando se carga el DOM
 document.addEventListener('DOMContentLoaded', function() {
     initMobileMenu();
+    
+    // Asegurar que el sidebar esté en el estado correcto
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    if (sidebar) {
+        sidebar.classList.remove('show');
+        sidebar.style.transform = 'translateX(-100%)';
+        sidebar.style.left = '0';
+    }
+    
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+    
+    document.body.style.overflow = '';
+});
+
+// Limpiar estado del sidebar antes de que se descargue la página
+window.addEventListener('beforeunload', function() {
+    localStorage.removeItem('sidebarOpen');
+    localStorage.removeItem('wasMobile');
 });
 
 // Exportar función del menú móvil
@@ -1207,33 +1241,61 @@ function editarCategoria(id) {
     window.location.href = `editar-categoria.php?id=${id}`;
 }
 
-function eliminarCategoria(id, nombre) {
-    Swal.fire({
-        title: '¿Eliminar categoría?',
-        text: `¿Estás seguro de que deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Crear formulario para enviar la solicitud
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '../../src/inventario/categorias/eliminar-categoria.php';
-            
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'id_categoria';
-            input.value = id;
-            
-            form.appendChild(input);
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
+function eliminarCategoria(id, nombre, totalProductos) {
+    if (totalProductos > 0) {
+        // Si tiene productos, mostrar advertencia especial
+        Swal.fire({
+            title: '⚠️ Categoría con productos',
+            html: `
+                <p>La categoría <strong>"${nombre}"</strong> tiene <strong>${totalProductos} productos</strong> asociados.</p>
+                <p>Si la eliminas, todos los productos quedarán sin categoría.</p>
+                <p><strong>¿Estás seguro de que deseas continuar?</strong></p>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar de todos modos',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                enviarEliminacionCategoria(id);
+            }
+        });
+    } else {
+        // Si no tiene productos, confirmación normal
+        Swal.fire({
+            title: '¿Eliminar categoría?',
+            text: `¿Estás seguro de que deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                enviarEliminacionCategoria(id);
+            }
+        });
+    }
+}
+
+function enviarEliminacionCategoria(id) {
+    // Crear formulario para enviar la solicitud
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '../../src/inventario/categorias/eliminar-categoria.php';
+    
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'id_categoria';
+    input.value = id;
+    
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
 }
 
 // Función para descargar PDF de categorías
