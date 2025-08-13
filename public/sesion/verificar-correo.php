@@ -1,7 +1,6 @@
 <?php
     require_once('../../src/auth/sesion/verificaciones-sesion.php');
     iniSesion();
-    validarSesion('../sesion/iniciar-sesion.php');
     inactividad('../sesion/iniciar-sesion.php');
 ?>
 

@@ -1,10 +1,10 @@
 <?php
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-// Cargar variables de entorno
-$dotenv = Dotenv::createImmutable(__DIR__);
+// Cargar variables de entorno desde la raíz
+$dotenv = Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
 
 // Conexión a la base de datos

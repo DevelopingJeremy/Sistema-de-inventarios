@@ -4,7 +4,6 @@
     iniSesion();
     include('../../../config/db.php');
     require('../../../config/mail.php');
-
     
     //Import PHPMailer classes into the global namespace
     //These must be at the top of your script, not inside a function
@@ -47,7 +46,7 @@
             $mail->Port       = $PortMail;          //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
 
             //* Recipients
-            $mail->setFrom('noreply@jeremyqg.com', 'Hybox');                   // Enviado desde
+            $mail->setFrom($mailAlias, $nameMail);                   // Enviado desde
             $mail->addAddress($_SESSION['correo']);                      // Enviado hacia
 
             //* //Attachments

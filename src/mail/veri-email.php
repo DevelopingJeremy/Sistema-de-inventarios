@@ -2,12 +2,8 @@
     ob_start();
 
     require('mail.php');
-    require_once('../auth/sesion/verificaciones-sesion.php');
-    iniSesion();
 
     $correo = $_SESSION['correo_verificado'];
-
-
 
     // Corroborar si el correo ya está verificado
     if (!$correo) {

@@ -2,7 +2,6 @@
 
 require_once('../auth/sesion/verificaciones-sesion.php');
 iniSesion();
-validarSesion('../../public/sesion/iniciar-sesion.php');
 require('../../config/mail.php');
 
 //Import PHPMailer classes into the global namespace
@@ -32,7 +31,7 @@ try {
     $mail->Port       = $PortMail;          //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
 
     //* Recipients
-    $mail->setFrom('noreply@jeremyqg.com', 'Hybox');                   // Enviado desde
+    $mail->setFrom($mailAlias, $nameMail);                   // Enviado desde
     $mail->addAddress($_SESSION['correo']);                      // Enviado hacia
 
     //* //Attachments
