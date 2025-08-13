@@ -1,11 +1,16 @@
 <?php
+require __DIR__ . '/vendor/autoload.php';
 
-// Datos para la conexión del Email
-$hostMail = "smtp.hostinger.com";
-$usernameMail = "info@jeremyqg.com";
-$passMail = "k+n=9f4Z";
-$SMTPSecure = "ssl";
-$PortMail = 465;
+use Dotenv\Dotenv;
 
+// Cargar variables de entorno
+$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
+// Datos de configuración de correo
+$hostMail    = $_ENV['HOSTMAIL'];
+$usernameMail = $_ENV['USERMAILNAME'];
+$passMail     = $_ENV['PASSMAIL'];
+$SMTPSecure   = $_ENV['SMTPSECURE'];
+$PortMail     = $_ENV['PORTMAIL'];
 ?>
